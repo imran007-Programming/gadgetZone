@@ -96,12 +96,12 @@ export default function AdminProducts() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
           Products
         </h1>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600"
         >
           <Plus className="h-4 w-4" />
           New product
@@ -114,17 +114,17 @@ export default function AdminProducts() {
       {/* Mobile cards */}
       <ul className="space-y-3 lg:hidden">
         {productsQuery.data.items.map((p) => (
-          <li key={p.id} className="rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800">
-            <p className="font-medium text-zinc-50">{p.name}</p>
+          <li key={p.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
+            <p className="font-medium text-zinc-900">{p.name}</p>
             <p className="font-mono text-xs text-zinc-500">{p.slug}</p>
             <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="font-semibold text-zinc-50">{formatPrice(p.price)}</span>
-              <span className="text-zinc-400">Stock: <span className="font-semibold text-zinc-50">{p.stock}</span></span>
+              <span className="font-semibold text-zinc-900">{formatPrice(p.price)}</span>
+              <span className="text-zinc-500">Stock: <span className="font-semibold text-zinc-900">{p.stock}</span></span>
             </div>
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => openEdit(p)}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-lime-400 ring-1 ring-zinc-700 hover:bg-zinc-800"
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-lime-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -134,7 +134,7 @@ export default function AdminProducts() {
                   if (window.confirm(`Deactivate "${p.name}"? It will be hidden from the store.`))
                     deleteMutation.mutate(p.id);
                 }}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-400 ring-1 ring-zinc-700 hover:bg-zinc-800"
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-400 ring-1 ring-zinc-300 hover:bg-zinc-100"
               >
                 <X className="h-3.5 w-3.5" />
                 Deactivate
@@ -145,9 +145,9 @@ export default function AdminProducts() {
       </ul>
 
       {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl bg-zinc-900 ring-1 ring-zinc-800 lg:block">
+      <div className="hidden overflow-x-auto rounded-xl bg-zinc-50 ring-1 ring-zinc-200 lg:block">
         <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-zinc-800 text-xs uppercase text-zinc-500">
+          <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Price</th>
@@ -155,11 +155,11 @@ export default function AdminProducts() {
               <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-800">
+          <tbody className="divide-y divide-zinc-200">
             {productsQuery.data.items.map((p) => (
-              <tr key={p.id} className="hover:bg-zinc-950">
+              <tr key={p.id} className="hover:bg-white">
                 <td className="px-4 py-3">
-                  <p className="font-medium text-zinc-50">{p.name}</p>
+                  <p className="font-medium text-zinc-900">{p.name}</p>
                   <p className="font-mono text-xs text-zinc-500">{p.slug}</p>
                 </td>
                 <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
@@ -171,13 +171,13 @@ export default function AdminProducts() {
                         min={0}
                         value={stockValue}
                         onChange={(e) => setStockValue(e.target.value)}
-                        className="w-20 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm text-zinc-100"
+                        className="w-20 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900"
                       />
                       <button
                         onClick={() =>
                           stockMutation.mutate({ id: p.id, stock: parseInt(stockValue || "0", 10) })
                         }
-                        className="rounded bg-lime-400 px-2 py-1 text-xs font-medium text-zinc-950"
+                        className="rounded bg-lime-500 px-2 py-1 text-xs font-medium text-white"
                       >
                         Save
                       </button>
@@ -195,7 +195,7 @@ export default function AdminProducts() {
                         setStockId(p.id);
                         setStockValue(String(p.stock));
                       }}
-                      className="font-medium text-zinc-50 hover:text-lime-400 hover:underline"
+                      className="font-medium text-zinc-900 hover:text-lime-600 hover:underline"
                       title="Click to update stock"
                     >
                       {p.stock}
@@ -206,7 +206,7 @@ export default function AdminProducts() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(p)}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-lime-400 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-lime-600 hover:underline"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit
@@ -302,12 +302,12 @@ function ProductModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-zinc-900 p-6 ring-1 ring-zinc-800">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-zinc-50 p-6 ring-1 ring-zinc-200">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-zinc-50">
+          <h2 className="text-lg font-bold text-zinc-900">
             {product ? "Edit product" : "New product"}
           </h2>
-          <button onClick={onClose} className="rounded-full p-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200" aria-label="Close">
+          <button onClick={onClose} className="rounded-full p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -358,22 +358,22 @@ function ProductModal({
           <Field label="Image URL" error={errors.imageUrl?.message}>
             <input className={inputClass} {...register("imageUrl")} />
           </Field>
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-            <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded text-lime-400" />
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+            <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded text-lime-600" />
             Active (visible in store)
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-800"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-100"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300 disabled:opacity-40"
+              className="rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:opacity-40"
             >
               {saveMutation.isPending ? "Saving…" : "Save"}
             </button>

@@ -57,17 +57,17 @@ function GuestPrompt() {
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
         Checkout
       </h1>
-      <div className="rounded-2xl bg-zinc-900 p-8 text-center ring-1 ring-zinc-800">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-lime-400/15">
-          <Lock className="h-6 w-6 text-lime-400" />
+      <div className="rounded-2xl bg-zinc-50 p-8 text-center ring-1 ring-zinc-200">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-lime-100">
+          <Lock className="h-6 w-6 text-lime-600" />
         </span>
-        <h2 className="mt-4 text-lg font-bold text-zinc-50">
+        <h2 className="mt-4 text-lg font-bold text-zinc-900">
           One quick step before you order
         </h2>
-        <p className="mt-2 text-sm text-zinc-400">
+        <p className="mt-2 text-sm text-zinc-500">
           {itemCount > 0 ? (
             <>
               Your cart with {itemCount} item{itemCount === 1 ? "" : "s"} (
@@ -81,14 +81,14 @@ function GuestPrompt() {
         <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
           <Link
             href="/login?next=/checkout"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-lime-500 px-6 py-3 text-sm font-semibold text-white hover:bg-lime-600"
           >
             <LogIn className="h-4 w-4" />
             Log in
           </Link>
           <Link
             href="/register?next=/checkout"
-            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-zinc-700 hover:bg-zinc-800"
+            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-100"
           >
             <UserPlus className="h-4 w-4" />
             Create account
@@ -149,25 +149,25 @@ function CheckoutContent() {
   // ---- Step 3: success -------------------------------------------------
   if (paidOrder) {
     return (
-      <div className="mx-auto max-w-lg rounded-2xl bg-zinc-900 p-8 text-center ring-1 ring-zinc-800">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/15">
+      <div className="mx-auto max-w-lg rounded-2xl bg-zinc-50 p-8 text-center ring-1 ring-zinc-200">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
           <CheckCircle2 className="h-7 w-7 text-emerald-400" />
         </span>
-        <h1 className="mt-4 text-2xl font-bold text-zinc-50">Payment successful!</h1>
-        <p className="mt-2 text-sm text-zinc-400">
+        <h1 className="mt-4 text-2xl font-bold text-zinc-900">Payment successful!</h1>
+        <p className="mt-2 text-sm text-zinc-500">
           Order <span className="font-mono font-semibold">{paidOrder.id.slice(0, 8)}</span>{" "}
           is confirmed. Total {formatPrice(paidOrder.totalAmount)}.
         </p>
         <div className="mt-6 flex justify-center gap-3">
           <button
             onClick={() => router.push(`/orders/${paidOrder.id}`)}
-            className="rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+            className="rounded-xl bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600"
           >
             View order
           </button>
           <button
             onClick={() => router.push("/products")}
-            className="rounded-xl px-5 py-2.5 text-sm font-semibold text-zinc-400 ring-1 ring-zinc-700 hover:bg-zinc-950"
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold text-zinc-500 ring-1 ring-zinc-300 hover:bg-white"
           >
             Continue shopping
           </button>
@@ -180,13 +180,13 @@ function CheckoutContent() {
   if (createdOrder) {
     return (
       <div className="mx-auto max-w-lg space-y-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">Payment</h1>
-        <div className="rounded-xl bg-zinc-900 p-6 ring-1 ring-zinc-800">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Payment</h1>
+        <div className="rounded-xl bg-zinc-50 p-6 ring-1 ring-zinc-200">
           <p className="text-sm text-zinc-500">Order total</p>
-          <p className="text-3xl font-bold text-zinc-50">
+          <p className="text-3xl font-bold text-zinc-900">
             {formatPrice(createdOrder.totalAmount)}
           </p>
-          <div className="mt-4 rounded-lg bg-amber-400/10 p-4 text-sm text-amber-300 ring-1 ring-amber-400/25">
+          <div className="mt-4 rounded-lg bg-amber-50 p-4 text-sm text-amber-800 ring-1 ring-amber-200">
             <p className="font-semibold">Mock payment</p>
             <p className="mt-1">
               This demo uses a mock payment provider — no real card is charged.
@@ -196,14 +196,14 @@ function CheckoutContent() {
           <button
             onClick={() => payOrder.mutate(createdOrder.id)}
             disabled={payOrder.isPending}
-            className="mt-5 w-full rounded-xl bg-lime-400 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-lime-300 disabled:opacity-40"
+            className="mt-5 w-full rounded-xl bg-lime-500 px-4 py-3 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
           >
             {payOrder.isPending
               ? "Processing…"
               : `Pay ${formatPrice(createdOrder.totalAmount)}`}
           </button>
           {payOrder.isError && (
-            <p className="mt-2 text-sm text-rose-400">
+            <p className="mt-2 text-sm text-rose-600">
               {(payOrder.error as Error).message}
             </p>
           )}
@@ -229,10 +229,10 @@ function CheckoutContent() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">Checkout</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Checkout</h1>
 
-      <div className="rounded-xl bg-zinc-900 p-6 ring-1 ring-zinc-800">
-        <h2 className="mb-4 text-base font-bold text-zinc-50">Shipping address</h2>
+      <div className="rounded-xl bg-zinc-50 p-6 ring-1 ring-zinc-200">
+        <h2 className="mb-4 text-base font-bold text-zinc-900">Shipping address</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <Field label="Full name" error={errors.name?.message} htmlFor="name">
             <input id="name" className={inputClass} autoComplete="name" {...register("name")} />
@@ -264,22 +264,22 @@ function CheckoutContent() {
           </Field>
 
           {createOrder.isError && (
-            <p className="text-sm text-rose-400">
+            <p className="text-sm text-rose-600">
               {(createOrder.error as ApiError).message}
             </p>
           )}
 
-          <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
+          <div className="flex items-center justify-between border-t border-zinc-200 pt-4">
             <div>
               <p className="text-sm text-zinc-500">
                 {itemCount} item{itemCount === 1 ? "" : "s"}
               </p>
-              <p className="text-lg font-bold text-zinc-50">{formatPrice(subtotal)}</p>
+              <p className="text-lg font-bold text-zinc-900">{formatPrice(subtotal)}</p>
             </div>
             <button
               type="submit"
               disabled={createOrder.isPending}
-              className="rounded-xl bg-lime-400 px-6 py-3 text-sm font-semibold text-zinc-950 hover:bg-lime-300 disabled:opacity-40"
+              className="rounded-xl bg-lime-500 px-6 py-3 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
             >
               {createOrder.isPending ? "Placing order…" : "Place order"}
             </button>

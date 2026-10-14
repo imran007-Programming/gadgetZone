@@ -57,15 +57,15 @@ export default function CartDrawer() {
       <button
         aria-label="Close cart"
         onClick={close}
-        className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm"
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-zinc-950 shadow-2xl ring-1 ring-zinc-800 animate-slide-in-right sm:max-w-md">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
-          <h2 className="font-display flex items-center gap-2 text-lg font-bold text-zinc-50">
-            <ShoppingCart className="h-5 w-5 text-lime-400" />
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl ring-1 ring-zinc-200 animate-slide-in-right sm:max-w-md">
+        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+          <h2 className="font-display flex items-center gap-2 text-lg font-bold text-zinc-900">
+            <ShoppingCart className="h-5 w-5 text-lime-600" />
             Your cart
             {itemCount > 0 && (
-              <span className="rounded-full bg-lime-400/15 px-2 py-0.5 text-xs font-bold text-lime-300">
+              <span className="rounded-full bg-lime-100 px-2 py-0.5 text-xs font-bold text-lime-700">
                 {itemCount}
               </span>
             )}
@@ -73,7 +73,7 @@ export default function CartDrawer() {
           <button
             onClick={close}
             aria-label="Close"
-            className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
+            className="rounded-full p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
           >
             <X className="h-5 w-5" />
           </button>
@@ -83,16 +83,16 @@ export default function CartDrawer() {
           {loading && <Spinner label="Loading cart…" />}
           {!loading && items.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-zinc-800">
-                <ShoppingCart className="h-7 w-7 text-zinc-500" />
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100 ring-1 ring-zinc-200">
+                <ShoppingCart className="h-7 w-7 text-zinc-400" />
               </span>
-              <p className="font-semibold text-zinc-200">Your cart is empty</p>
+              <p className="font-semibold text-zinc-800">Your cart is empty</p>
               <p className="text-sm text-zinc-500">
                 Browse the catalog and add something you like.
               </p>
               <button
                 onClick={() => go("/products")}
-                className="mt-2 rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+                className="mt-2 rounded-full bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600"
               >
                 Shop products
               </button>
@@ -103,12 +103,12 @@ export default function CartDrawer() {
               {items.map((item) => (
                 <li
                   key={item.productId}
-                  className="flex gap-3 rounded-xl bg-zinc-900 p-3 ring-1 ring-zinc-800"
+                  className="flex gap-3 rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200"
                 >
                   <Link
                     href={`/products/${item.slug}`}
                     onClick={close}
-                    className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-800"
+                    className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-200"
                   >
                     <Image
                       src={item.imageUrl}
@@ -123,39 +123,39 @@ export default function CartDrawer() {
                       <Link
                         href={`/products/${item.slug}`}
                         onClick={close}
-                        className="truncate text-sm font-semibold text-zinc-50 hover:text-lime-300"
+                        className="truncate text-sm font-semibold text-zinc-900 hover:text-lime-700"
                       >
                         {item.name}
                       </Link>
                       <button
                         onClick={() => handleRemove(item.productId, item.name)}
-                        className="shrink-0 rounded p-1 text-zinc-500 transition hover:text-rose-400"
+                        className="shrink-0 rounded p-1 text-zinc-400 transition hover:text-rose-600"
                         aria-label={`Remove ${item.name}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="mt-auto flex items-center justify-between pt-2">
-                      <div className="flex items-center rounded-lg ring-1 ring-zinc-700">
+                      <div className="flex items-center rounded-lg bg-white ring-1 ring-zinc-200">
                         <button
                           aria-label="Decrease quantity"
                           onClick={() => setQty(item.productId, item.quantity - 1)}
-                          className="p-1.5 text-zinc-400 transition hover:text-lime-400"
+                          className="p-1.5 text-zinc-500 transition hover:text-lime-600"
                         >
                           <Minus className="h-4 w-4" />
                         </button>
-                        <span className="w-7 text-center text-sm font-semibold text-zinc-100">
+                        <span className="w-7 text-center text-sm font-semibold text-zinc-900">
                           {item.quantity}
                         </span>
                         <button
                           aria-label="Increase quantity"
                           onClick={() => setQty(item.productId, item.quantity + 1)}
-                          className="p-1.5 text-zinc-400 transition hover:text-lime-400"
+                          className="p-1.5 text-zinc-500 transition hover:text-lime-600"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
                       </div>
-                      <p className="text-sm font-bold text-zinc-50">
+                      <p className="text-sm font-bold text-zinc-900">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                     </div>
@@ -167,22 +167,22 @@ export default function CartDrawer() {
         </div>
 
         {items.length > 0 && (
-          <div className="border-t border-zinc-800 px-5 py-4">
+          <div className="border-t border-zinc-200 bg-white px-5 py-4">
             <div className="flex justify-between text-sm">
-              <span className="text-zinc-400">Subtotal</span>
-              <span className="font-display text-lg font-bold text-zinc-50">
+              <span className="text-zinc-500">Subtotal</span>
+              <span className="font-display text-lg font-bold text-zinc-900">
                 {formatPrice(subtotal)}
               </span>
             </div>
             <button
               onClick={() => go("/checkout")}
-              className="btn-glow mt-3 w-full rounded-full bg-lime-400 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+              className="btn-glow mt-3 w-full rounded-full bg-lime-500 px-4 py-3 text-sm font-semibold text-white hover:bg-lime-600"
             >
               Checkout
             </button>
             <button
               onClick={() => go("/cart")}
-              className="mt-2 w-full rounded-full px-4 py-2.5 text-sm font-medium text-zinc-300 ring-1 ring-zinc-700 hover:bg-zinc-800"
+              className="mt-2 w-full rounded-full px-4 py-2.5 text-sm font-medium text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-100"
             >
               View full cart
             </button>

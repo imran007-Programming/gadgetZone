@@ -40,7 +40,7 @@ export default function AdminCustomers() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
         Customers
       </h1>
       <p className="text-sm text-zinc-500">{usersQuery.data.length} accounts</p>
@@ -49,20 +49,20 @@ export default function AdminCustomers() {
       ) : (
         <div className="space-y-3">
           {usersQuery.data.map((u) => (
-            <div key={u.id} className="rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800">
+            <div key={u.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-800 font-display text-sm font-bold text-zinc-300">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 font-display text-sm font-bold text-zinc-600">
                     {u.name.charAt(0).toUpperCase()}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-zinc-50">
+                    <p className="truncate text-sm font-semibold text-zinc-900">
                       {u.name}{" "}
-                      <span className="ml-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-400">
+                      <span className="ml-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
                         {u.role}
                       </span>
                       {!u.isActive && (
-                        <span className="ml-1 rounded-full bg-rose-400/15 px-2 py-0.5 text-[11px] font-medium text-rose-300">
+                        <span className="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700">
                           disabled
                         </span>
                       )}
@@ -73,7 +73,7 @@ export default function AdminCustomers() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setExpanded(expanded === u.id ? null : u.id)}
-                    className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-400 ring-1 ring-zinc-800 hover:bg-zinc-950"
+                    className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 ring-1 ring-zinc-200 hover:bg-white"
                   >
                     {expanded === u.id ? (
                       <ChevronUp className="h-3.5 w-3.5" />
@@ -90,7 +90,7 @@ export default function AdminCustomers() {
                       disabled={toggleMutation.isPending}
                       className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium ${
                         u.isActive
-                          ? "text-rose-400 ring-1 ring-rose-400/30 hover:bg-rose-400/10"
+                          ? "text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50"
                           : "text-emerald-400 ring-1 ring-emerald-400/25 hover:bg-emerald-400/10"
                       }`}
                     >
@@ -122,7 +122,7 @@ function UserOrders({ userId }: { userId: string }) {
   if (ordersQuery.isPending) return <Spinner label="Loading orders…" />;
   if (ordersQuery.isError)
     return (
-      <p className="mt-3 text-xs text-rose-400">
+      <p className="mt-3 text-xs text-rose-600">
         {(ordersQuery.error as Error).message}
       </p>
     );
@@ -130,14 +130,14 @@ function UserOrders({ userId }: { userId: string }) {
     return <p className="mt-3 text-xs text-zinc-500">No orders.</p>;
 
   return (
-    <ul className="mt-3 space-y-1.5 border-t border-zinc-800 pt-3">
+    <ul className="mt-3 space-y-1.5 border-t border-zinc-200 pt-3">
       {ordersQuery.data.map((o) => (
         <li key={o.id} className="flex items-center justify-between gap-2 text-xs">
           <span className="font-mono text-zinc-500">#{o.id.slice(0, 8)}</span>
           <span className="text-zinc-500">
             {new Date(o.createdAt).toLocaleDateString()}
           </span>
-          <span className="font-medium text-zinc-50">{formatPrice(o.totalAmount)}</span>
+          <span className="font-medium text-zinc-900">{formatPrice(o.totalAmount)}</span>
           <StatusBadge status={o.status} />
         </li>
       ))}

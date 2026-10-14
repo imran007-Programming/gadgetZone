@@ -43,15 +43,15 @@ export default function AdminOrders() {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
         Orders
       </h1>
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-zinc-400">Status filter</label>
+        <label className="text-sm font-medium text-zinc-500">Status filter</label>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100"
+          className="rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-900"
         >
           <option value="">All</option>
           {ORDER_STATUSES.map((s) => (
@@ -69,9 +69,9 @@ export default function AdminOrders() {
           {/* Mobile cards */}
           <ul className="space-y-3 lg:hidden">
             {ordersQuery.data.map((o) => (
-              <li key={o.id} className="rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800">
+              <li key={o.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm font-semibold text-zinc-50">
+                  <span className="font-mono text-sm font-semibold text-zinc-900">
                     #{o.id.slice(0, 8)}
                   </span>
                   <StatusBadge status={o.status} />
@@ -80,7 +80,7 @@ export default function AdminOrders() {
                   <span className="text-xs text-zinc-500">
                     {new Date(o.createdAt).toLocaleDateString()}
                   </span>
-                  <span className="font-bold text-zinc-50">{formatPrice(o.totalAmount)}</span>
+                  <span className="font-bold text-zinc-900">{formatPrice(o.totalAmount)}</span>
                 </div>
                 <select
                   value={o.status}
@@ -88,7 +88,7 @@ export default function AdminOrders() {
                     statusMutation.mutate({ id: o.id, status: e.target.value as OrderStatus })
                   }
                   disabled={statusMutation.isPending}
-                  className="mt-3 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-100"
+                  className="mt-3 w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-900"
                   aria-label={`Update status for order ${o.id.slice(0, 8)}`}
                 >
                   {ORDER_STATUSES.map((s) => (
@@ -101,9 +101,9 @@ export default function AdminOrders() {
             ))}
           </ul>
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-xl bg-zinc-900 ring-1 ring-zinc-800 lg:block">
+          <div className="hidden overflow-x-auto rounded-xl bg-zinc-50 ring-1 ring-zinc-200 lg:block">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-zinc-800 text-xs uppercase text-zinc-500">
+              <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
                 <tr>
                   <th className="px-4 py-3">Order</th>
                   <th className="px-4 py-3">Date</th>
@@ -112,9 +112,9 @@ export default function AdminOrders() {
                   <th className="px-4 py-3">Update</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-zinc-200">
                 {ordersQuery.data.map((o) => (
-                  <tr key={o.id} className="hover:bg-zinc-950">
+                  <tr key={o.id} className="hover:bg-white">
                     <td className="px-4 py-3 font-mono text-xs">#{o.id.slice(0, 8)}</td>
                     <td className="px-4 py-3 text-xs text-zinc-500">
                       {new Date(o.createdAt).toLocaleDateString()}
@@ -130,7 +130,7 @@ export default function AdminOrders() {
                           statusMutation.mutate({ id: o.id, status: e.target.value as OrderStatus })
                         }
                         disabled={statusMutation.isPending}
-                        className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-100"
+                        className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900"
                         aria-label={`Update status for order ${o.id.slice(0, 8)}`}
                       >
                         {ORDER_STATUSES.map((s) => (

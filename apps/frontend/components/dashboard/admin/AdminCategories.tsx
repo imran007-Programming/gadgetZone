@@ -87,12 +87,12 @@ export default function AdminCategories() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
           Categories
         </h1>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600"
         >
           <Plus className="h-4 w-4" />
           New category
@@ -103,7 +103,7 @@ export default function AdminCategories() {
       {showForm && (
         <form
           onSubmit={handleSubmit((v) => saveMutation.mutate(v))}
-          className="grid gap-4 rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800 sm:grid-cols-3"
+          className="grid gap-4 rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200 sm:grid-cols-3"
           noValidate
         >
           <Field label="Name" error={errors.name?.message}>
@@ -119,14 +119,14 @@ export default function AdminCategories() {
             <button
               type="submit"
               disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300 disabled:opacity-40"
+              className="rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:opacity-40"
             >
               {saveMutation.isPending ? "Saving…" : editing ? "Update" : "Create"}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-800"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-100"
             >
               Cancel
             </button>
@@ -137,13 +137,13 @@ export default function AdminCategories() {
       {/* Mobile cards */}
       <ul className="space-y-3 lg:hidden">
         {categoriesQuery.data.map((c) => (
-          <li key={c.id} className="rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800">
-            <p className="font-medium text-zinc-50">{c.name}</p>
+          <li key={c.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
+            <p className="font-medium text-zinc-900">{c.name}</p>
             <p className="font-mono text-xs text-zinc-500">{c.slug}</p>
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => openEdit(c)}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-lime-400 ring-1 ring-zinc-700 hover:bg-zinc-800"
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-lime-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -153,7 +153,7 @@ export default function AdminCategories() {
                   if (window.confirm(`Delete category "${c.name}"? Only empty categories can be deleted.`))
                     deleteMutation.mutate(c.id);
                 }}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-400 ring-1 ring-zinc-700 hover:bg-zinc-800"
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-400 ring-1 ring-zinc-300 hover:bg-zinc-100"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
@@ -164,25 +164,25 @@ export default function AdminCategories() {
       </ul>
 
       {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl bg-zinc-900 ring-1 ring-zinc-800 lg:block">
+      <div className="hidden overflow-x-auto rounded-xl bg-zinc-50 ring-1 ring-zinc-200 lg:block">
         <table className="w-full min-w-[560px] text-left text-sm">
-          <thead className="border-b border-zinc-800 text-xs uppercase text-zinc-500">
+          <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-800">
+          <tbody className="divide-y divide-zinc-200">
             {categoriesQuery.data.map((c) => (
-              <tr key={c.id} className="hover:bg-zinc-950">
-                <td className="px-4 py-3 font-medium text-zinc-50">{c.name}</td>
+              <tr key={c.id} className="hover:bg-white">
+                <td className="px-4 py-3 font-medium text-zinc-900">{c.name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-zinc-500">{c.slug}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(c)}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-lime-400 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-lime-600 hover:underline"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit

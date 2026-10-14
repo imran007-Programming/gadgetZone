@@ -31,7 +31,7 @@ export default function CartPage() {
         action={
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+            className="inline-flex items-center gap-2 rounded-full bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600"
           >
             <ShoppingCart className="h-4 w-4" />
             Shop products
@@ -56,7 +56,7 @@ export default function CartPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
           Cart ({itemCount} item{itemCount === 1 ? "" : "s"})
         </h1>
         <button
@@ -73,11 +73,11 @@ export default function CartPage() {
           {items.map((item) => (
             <li
               key={item.productId}
-              className="flex gap-4 rounded-xl bg-zinc-900 p-3 ring-1 ring-zinc-800"
+              className="flex gap-4 rounded-xl bg-zinc-50 p-3 ring-1 ring-zinc-200"
             >
               <Link
                 href={`/products/${item.slug}`}
-                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800"
+                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100"
               >
                 <Image
                   src={item.imageUrl}
@@ -91,7 +91,7 @@ export default function CartPage() {
                 <div className="flex items-start justify-between gap-2">
                   <Link
                     href={`/products/${item.slug}`}
-                    className="truncate text-sm font-semibold text-zinc-50 hover:text-lime-300"
+                    className="truncate text-sm font-semibold text-zinc-900 hover:text-lime-700"
                   >
                     {item.name}
                   </Link>
@@ -105,26 +105,26 @@ export default function CartPage() {
                 </div>
                 <p className="text-xs text-zinc-500">{formatPrice(item.price)} each</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <div className="flex items-center rounded-lg ring-1 ring-zinc-700">
+                  <div className="flex items-center rounded-lg ring-1 ring-zinc-300">
                     <button
                       aria-label="Decrease quantity"
                       onClick={() => setQty(item.productId, item.quantity - 1)}
-                      className="p-2 text-zinc-400 transition hover:text-lime-400"
+                      className="p-2 text-zinc-500 transition hover:text-lime-600"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
-                    <span className="w-8 text-center text-sm font-semibold text-zinc-100">
+                    <span className="w-8 text-center text-sm font-semibold text-zinc-900">
                       {item.quantity}
                     </span>
                     <button
                       aria-label="Increase quantity"
                       onClick={() => setQty(item.productId, item.quantity + 1)}
-                      className="p-2 text-zinc-400 transition hover:text-lime-400"
+                      className="p-2 text-zinc-500 transition hover:text-lime-600"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <p className="text-sm font-bold text-zinc-50">
+                  <p className="text-sm font-bold text-zinc-900">
                     {formatPrice(item.price * item.quantity)}
                   </p>
                 </div>
@@ -133,24 +133,24 @@ export default function CartPage() {
           ))}
         </ul>
 
-        <aside className="h-fit rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800 lg:sticky lg:top-24">
-          <h2 className="text-base font-bold text-zinc-50">Order summary</h2>
-          <div className="mt-3 flex justify-between text-sm text-zinc-400">
+        <aside className="h-fit rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200 lg:sticky lg:top-24">
+          <h2 className="text-base font-bold text-zinc-900">Order summary</h2>
+          <div className="mt-3 flex justify-between text-sm text-zinc-500">
             <span>Subtotal</span>
-            <span className="font-semibold text-zinc-50">{formatPrice(subtotal)}</span>
+            <span className="font-semibold text-zinc-900">{formatPrice(subtotal)}</span>
           </div>
           <p className="mt-1 text-xs text-zinc-500">
             Shipping calculated at checkout.
           </p>
           <button
             onClick={() => router.push("/checkout")}
-            className="mt-4 w-full rounded-xl bg-lime-400 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+            className="mt-4 w-full rounded-xl bg-lime-500 px-4 py-3 text-sm font-semibold text-white hover:bg-lime-600"
           >
             Proceed to checkout
           </button>
           <Link
             href="/products"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-lime-300"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-lime-700"
           >
             <ArrowLeft className="h-4 w-4" />
             Continue shopping

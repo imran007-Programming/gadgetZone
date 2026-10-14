@@ -36,18 +36,18 @@ export default function AdminOverview() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
         Overview
       </h1>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div key={c.label} className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime-400/10">
-                <Icon className="h-5 w-5 text-lime-400" />
+            <div key={c.label} className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime-100">
+                <Icon className="h-5 w-5 text-lime-600" />
               </span>
-              <p className="mt-3 text-2xl font-bold text-zinc-50">{c.value}</p>
+              <p className="mt-3 text-2xl font-bold text-zinc-900">{c.value}</p>
               <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                 {c.label}
               </p>
@@ -57,19 +57,19 @@ export default function AdminOverview() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
-          <h2 className="mb-3 text-sm font-bold text-zinc-50">Orders by status</h2>
+        <div className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
+          <h2 className="mb-3 text-sm font-bold text-zinc-900">Orders by status</h2>
           <ul className="space-y-2">
             {(Object.keys(s.ordersByStatus) as OrderStatus[]).map((st) => (
               <li key={st} className="flex items-center justify-between text-sm">
                 <StatusBadge status={st} />
-                <span className="font-semibold text-zinc-50">{s.ordersByStatus[st]}</span>
+                <span className="font-semibold text-zinc-900">{s.ordersByStatus[st]}</span>
               </li>
             ))}
           </ul>
         </div>
-        <div className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
-          <h2 className="mb-3 text-sm font-bold text-zinc-50">
+        <div className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
+          <h2 className="mb-3 text-sm font-bold text-zinc-900">
             Low stock (under 10 units)
           </h2>
           {s.lowStock.length === 0 ? (
@@ -78,7 +78,7 @@ export default function AdminOverview() {
             <ul className="space-y-2">
               {s.lowStock.map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-sm">
-                  <span className="truncate font-medium text-zinc-200">{p.name}</span>
+                  <span className="truncate font-medium text-zinc-700">{p.name}</span>
                   <span
                     className={`font-bold ${p.stock === 0 ? "text-rose-400" : "text-amber-400"}`}
                   >

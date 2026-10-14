@@ -29,7 +29,7 @@ export function WishlistContent() {
         action={
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+            className="inline-flex items-center gap-2 rounded-full bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600"
           >
             <Heart className="h-4 w-4" />
             Discover products
@@ -64,7 +64,7 @@ export function WishlistContent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
         Wishlist ({items.length} item{items.length === 1 ? "" : "s"})
       </h1>
 
@@ -76,14 +76,14 @@ export function WishlistContent() {
           return (
             <li
               key={item.productId}
-              className="group relative flex flex-col overflow-hidden rounded-2xl bg-zinc-900 ring-1 ring-zinc-800 transition hover:ring-lime-400/40"
+              className="group relative flex flex-col overflow-hidden rounded-2xl bg-zinc-50 ring-1 ring-zinc-200 transition hover:ring-lime-500/40"
             >
               <div className="absolute right-2.5 top-2.5 z-10">
                 <WishlistButton product={item} />
               </div>
               <Link
                 href={`/products/${item.slug}`}
-                className="relative aspect-[4/3] overflow-hidden bg-zinc-800"
+                className="relative aspect-[4/3] overflow-hidden bg-zinc-100"
               >
                 <Image
                   src={item.imageUrl}
@@ -94,19 +94,19 @@ export function WishlistContent() {
                   loading="lazy"
                 />
                 {outOfStock && (
-                  <span className="absolute inset-x-0 bottom-0 bg-zinc-950/80 py-1.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                  <span className="absolute inset-x-0 bottom-0 bg-white/90 py-1.5 text-center text-xs font-semibold uppercase tracking-wider text-zinc-600">
                     Out of stock
                   </span>
                 )}
               </Link>
               <div className="flex flex-1 flex-col gap-1.5 p-4">
                 <Link href={`/products/${item.slug}`}>
-                  <h3 className="line-clamp-2 font-display text-sm font-semibold text-zinc-100 hover:text-lime-300">
+                  <h3 className="line-clamp-2 font-display text-sm font-semibold text-zinc-900 hover:text-lime-700">
                     {item.name}
                   </h3>
                 </Link>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-display text-lg font-bold text-zinc-50">
+                  <span className="font-display text-lg font-bold text-zinc-900">
                     {formatPrice(item.price)}
                   </span>
                   {hasDiscount && (
@@ -119,14 +119,14 @@ export function WishlistContent() {
                   <button
                     onClick={() => moveToCart(item.productId)}
                     disabled={outOfStock}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-lime-400 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-lime-300 disabled:opacity-40"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-lime-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-lime-600 disabled:opacity-40"
                   >
                     <ShoppingCart className="h-4 w-4" />
                     Move to cart
                   </button>
                   <button
                     onClick={() => handleRemove(item.productId, item.name)}
-                    className="rounded-full p-2 text-rose-400 ring-1 ring-zinc-700 transition hover:bg-zinc-800"
+                    className="rounded-full p-2 text-rose-400 ring-1 ring-zinc-300 transition hover:bg-zinc-100"
                     aria-label={`Remove ${item.name}`}
                   >
                     <Trash2 className="h-4 w-4" />

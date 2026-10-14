@@ -5,6 +5,7 @@ import Providers from "./providers";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
+import MobileNav from "@/components/MobileNav";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,17 +31,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} flex min-h-screen flex-col bg-zinc-950 text-zinc-100`}
+        className={`${inter.variable} ${spaceGrotesk.variable} flex min-h-screen flex-col bg-zinc-50 text-zinc-900`}
       >
         <Providers>
           <Header />
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6">
             {children}
           </main>
           <Footer />
           <CartDrawer />
+          <MobileNav />
         </Providers>
       </body>
     </html>

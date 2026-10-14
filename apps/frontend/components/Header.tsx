@@ -1,8 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Heart, LayoutDashboard, LogOut, ShoppingCart, User } from "lucide-react";
+import {
+  Heart,
+  LayoutDashboard,
+  LogOut,
+  Search,
+  ShoppingCart,
+  User,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
 import { useCartStore, selectItemCount } from "@/lib/store/cart";
@@ -16,6 +24,7 @@ export default function Header() {
   const openCartDrawer = useCartStore((s) => s.openDrawer);
   const cartCount = useCartStore(selectItemCount);
   const wishlistCount = useWishlistStore(selectWishlistCount);
+  const [query, setQuery] = useState("");
 
   const handleLogout = async () => {
     await logout();
@@ -23,61 +32,80 @@ export default function Header() {
     router.push("/");
   };
 
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`/products${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`);
+  };
+
   const linkCls = (href: string) =>
     `rounded-full px-3.5 py-2 text-sm font-medium transition ${
       pathname === href || pathname.startsWith(href + "/")
-        ? "bg-lime-400/15 text-lime-300"
-        : "text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-100"
+        ? "bg-lime-100 text-lime-800"
+        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
     }`;
 
   const dashboardHref = isAdmin ? "/admin" : "/dashboard";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
-        <Link href="/" className="group flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime-400 font-display text-lg font-bold text-zinc-950 shadow-[0_0_20px_-4px_rgba(163,230,53,0.6)] transition group-hover:shadow-[0_0_28px_-2px_rgba(163,230,53,0.8)]">
+    <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-4 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime-500 font-display text-lg font-bold text-white shadow-sm">
             G
           </span>
-          <span className="font-display text-lg font-bold tracking-tight text-zinc-50">
-            Gadget<span className="text-lime-400">Lax</span>
+          <span className="font-display text-lg font-bold tracking-tight text-zinc-900">
+            Gadget<span className="text-lime-600">Lax</span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        {/* Prominent search */}
+        <form
+          onSubmit={submitSearch}
+          className="hidden min-w-0 flex-1 items-center md:flex"
+          role="search"
+        >
+          <div className="relative w-full max-w-xl">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search for products"
+              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-lime-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime-500/20"
+            />
+          </div>
+        </form>
+
+        <nav className="hidden items-center gap-1 lg:flex">
           <Link href="/" className={linkCls("/")}>Home</Link>
           <Link href="/products" className={linkCls("/products")}>Products</Link>
           {isAuthenticated && !isAdmin && (
             <Link href="/dashboard/orders" className={linkCls("/dashboard/orders")}>Orders</Link>
           )}
-          {isAuthenticated && (
-            <Link href={dashboardHref} className={linkCls(dashboardHref)}>Dashboard</Link>
-          )}
         </nav>
 
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
           {!isAdmin && (
             <>
               <Link
                 href={isAuthenticated ? "/dashboard/wishlist" : "/wishlist"}
-                className="relative rounded-full p-2.5 text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
+                className="relative hidden rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 sm:block"
                 aria-label="Wishlist"
               >
                 <Heart className="h-5 w-5" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-400 px-1 text-[11px] font-bold text-zinc-950">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-500 px-1 text-[11px] font-bold text-white">
                     {wishlistCount}
                   </span>
                 )}
               </Link>
               <button
                 onClick={openCartDrawer}
-                className="relative rounded-full p-2.5 text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
+                className="relative hidden rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 sm:block"
                 aria-label="Open cart"
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-400 px-1 text-[11px] font-bold text-zinc-950">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-500 px-1 text-[11px] font-bold text-white">
                     {cartCount}
                   </span>
                 )}
@@ -88,7 +116,7 @@ export default function Header() {
             <div className="flex items-center gap-1">
               <Link
                 href={dashboardHref}
-                className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100 sm:flex"
+                className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 sm:flex"
               >
                 {isAdmin ? (
                   <LayoutDashboard className="h-4 w-4" />
@@ -99,23 +127,23 @@ export default function Header() {
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
+                className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 sm:flex"
               >
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Logout</span>
+                Logout
               </button>
             </div>
           ) : (
             <>
               <Link
                 href="/login"
-                className="rounded-full px-3.5 py-2 text-sm font-medium text-zinc-300 transition hover:bg-zinc-800/70 hover:text-white"
+                className="hidden rounded-full px-3.5 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 sm:block"
               >
                 Login
               </Link>
               <Link
                 href="/register"
-                className="btn-glow rounded-full bg-lime-400 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-lime-300"
+                className="btn-glow hidden rounded-full bg-lime-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-lime-600 sm:block"
               >
                 Sign up
               </Link>
@@ -124,20 +152,20 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile nav */}
-      <nav className="flex items-center gap-1 overflow-x-auto border-t border-zinc-800/60 px-4 py-2 md:hidden">
-        <Link href="/" className={linkCls("/")}>Home</Link>
-        <Link href="/products" className={linkCls("/products")}>Products</Link>
-        {isAuthenticated && !isAdmin && (
-          <Link href="/dashboard/wishlist" className={linkCls("/dashboard/wishlist")}>Wishlist</Link>
-        )}
-        {isAuthenticated && !isAdmin && (
-          <Link href="/dashboard/orders" className={linkCls("/dashboard/orders")}>Orders</Link>
-        )}
-        {isAuthenticated && (
-          <Link href={dashboardHref} className={linkCls(dashboardHref)}>Dashboard</Link>
-        )}
-      </nav>
+      {/* Mobile search row */}
+      <div className="border-t border-zinc-100 px-4 py-2.5 md:hidden">
+        <form onSubmit={submitSearch} role="search">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search for products"
+              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-lime-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime-500/20"
+            />
+          </div>
+        </form>
+      </div>
     </header>
   );
 }

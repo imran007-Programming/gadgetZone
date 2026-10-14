@@ -58,10 +58,10 @@ export default function WishlistButton({
       onClick={handleClick}
       aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
       aria-pressed={active}
-      className={`flex h-9 w-9 items-center justify-center rounded-full ring-1 backdrop-blur transition ${
+      className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm ring-1 backdrop-blur transition ${
         active
-          ? "bg-lime-400 text-zinc-950 ring-lime-400"
-          : "bg-zinc-950/60 text-zinc-300 ring-zinc-700 hover:text-lime-300 hover:ring-lime-400/60"
+          ? "bg-lime-500 text-white ring-lime-500"
+          : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-lime-600 hover:ring-lime-500/60"
       } ${className}`}
     >
       <Heart

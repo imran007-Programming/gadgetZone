@@ -66,21 +66,21 @@ function OrderDetailContent() {
       <BackLink href="/orders" label="Back to orders" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
           Order <span className="font-mono">#{order.id.slice(0, 8)}</span>
         </h1>
         <StatusBadge status={order.status} />
       </div>
 
-      <div className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
+      <div className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-zinc-500">
           Items
         </h2>
-        <ul className="divide-y divide-zinc-800">
+        <ul className="divide-y divide-zinc-200">
           {order.items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 py-3">
               {item.product?.imageUrl && (
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
                   <Image
                     src={item.product.imageUrl}
                     alt={item.product.name}
@@ -91,32 +91,32 @@ function OrderDetailContent() {
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-zinc-50">
+                <p className="truncate text-sm font-semibold text-zinc-900">
                   {item.product?.name ?? "Product"}
                 </p>
                 <p className="text-xs text-zinc-500">
                   {item.quantity} × {formatPrice(item.unitPrice)}
                 </p>
               </div>
-              <p className="text-sm font-bold text-zinc-50">
+              <p className="text-sm font-bold text-zinc-900">
                 {formatPrice(item.quantity * Number(item.unitPrice))}
               </p>
             </li>
           ))}
         </ul>
-        <div className="mt-3 flex justify-between border-t border-zinc-800 pt-3">
-          <span className="text-sm font-medium text-zinc-400">Total</span>
-          <span className="text-base font-bold text-zinc-50">
+        <div className="mt-3 flex justify-between border-t border-zinc-200 pt-3">
+          <span className="text-sm font-medium text-zinc-500">Total</span>
+          <span className="text-base font-bold text-zinc-900">
             {formatPrice(order.totalAmount)}
           </span>
         </div>
       </div>
 
-      <div className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
+      <div className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-zinc-500">
           Shipping address
         </h2>
-        <p className="text-sm text-zinc-200">
+        <p className="text-sm text-zinc-700">
           {addr.name}
           <br />
           {addr.street}
@@ -135,7 +135,7 @@ function OrderDetailContent() {
           <button
             onClick={() => payMutation.mutate()}
             disabled={payMutation.isPending}
-            className="rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-300 disabled:opacity-40"
+            className="rounded-xl bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
           >
             {payMutation.isPending ? "Processing…" : "Pay now (mock)"}
           </button>
@@ -145,7 +145,7 @@ function OrderDetailContent() {
                 cancelMutation.mutate();
             }}
             disabled={cancelMutation.isPending}
-            className="rounded-xl px-5 py-2.5 text-sm font-semibold text-rose-400 ring-1 ring-rose-400/30 hover:bg-rose-400/10 disabled:opacity-40"
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50 disabled:opacity-40"
           >
             {cancelMutation.isPending ? "Cancelling…" : "Cancel order"}
           </button>
@@ -153,7 +153,7 @@ function OrderDetailContent() {
       )}
 
       {(payMutation.isError || cancelMutation.isError) && (
-        <p className="text-sm text-rose-400">
+        <p className="text-sm text-rose-600">
           {((payMutation.error ?? cancelMutation.error) as Error).message}
         </p>
       )}
