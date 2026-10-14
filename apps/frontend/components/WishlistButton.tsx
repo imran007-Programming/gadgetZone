@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart } from "lucide-react";
+import confetti from "canvas-confetti";
 import { useWishlistStore, type LocalWishlistItem } from "@/lib/store/wishlist";
 import { useToast } from "@/lib/toast";
 import type { Product } from "@/lib/types";
@@ -49,6 +50,21 @@ export default function WishlistButton({
     e.preventDefault();
     e.stopPropagation();
     toggle(normalized).then(() => {
+      if (!active) {
+        // Celebration when adding to wishlist
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        confetti({
+          particleCount: 60,
+          spread: 70,
+          startVelocity: 35,
+          origin: {
+            x: (rect.left + rect.width / 2) / window.innerWidth,
+            y: (rect.top + rect.height / 2) / window.innerHeight,
+          },
+          colors: ["#2563eb", "#60a5fa", "#f472b6", "#fbbf24"],
+          disableForReducedMotion: true,
+        });
+      }
       toast.success(active ? "Removed from wishlist" : "Added to wishlist");
     });
   };

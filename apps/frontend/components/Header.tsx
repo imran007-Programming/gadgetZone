@@ -88,7 +88,7 @@ export default function Header() {
             <>
               <Link
                 href={isAuthenticated ? "/dashboard/wishlist" : "/wishlist"}
-                className="relative hidden rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 sm:block"
+                className="relative rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                 aria-label="Wishlist"
               >
                 <Heart className="h-5 w-5" />
@@ -100,7 +100,7 @@ export default function Header() {
               </Link>
               <button
                 onClick={openCartDrawer}
-                className="relative hidden rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 sm:block"
+                className="relative rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                 aria-label="Open cart"
               >
                 <ShoppingCart className="h-5 w-5" />
