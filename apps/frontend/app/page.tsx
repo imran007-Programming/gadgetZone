@@ -38,8 +38,8 @@ async function getTrending(): Promise<ProductsResponse | null> {
   }
 }
 
-// Render on demand — never block the build on API availability.
-export const dynamic = "force-dynamic";
+// Cache the homepage for 5 minutes (ISR) — instant loads, fresh data in background.
+export const revalidate = 300;
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   audio: Headphones,
