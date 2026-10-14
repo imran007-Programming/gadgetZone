@@ -44,8 +44,8 @@ export default function AdminOverview() {
           const Icon = c.icon;
           return (
             <div key={c.label} className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime-100">
-                <Icon className="h-5 w-5 text-lime-600" />
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100">
+                <Icon className="h-5 w-5 text-blue-600" />
               </span>
               <p className="mt-3 text-2xl font-bold text-zinc-900">{c.value}</p>
               <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">

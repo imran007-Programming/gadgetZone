@@ -62,10 +62,10 @@ export default function CartDrawer() {
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-2xl ring-1 ring-zinc-200 animate-slide-in-right sm:max-w-md">
         <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
           <h2 className="font-display flex items-center gap-2 text-lg font-bold text-zinc-900">
-            <ShoppingCart className="h-5 w-5 text-lime-600" />
+            <ShoppingCart className="h-5 w-5 text-blue-600" />
             Your cart
             {itemCount > 0 && (
-              <span className="rounded-full bg-lime-100 px-2 py-0.5 text-xs font-bold text-lime-700">
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">
                 {itemCount}
               </span>
             )}
@@ -92,7 +92,7 @@ export default function CartDrawer() {
               </p>
               <button
                 onClick={() => go("/products")}
-                className="mt-2 rounded-full bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600"
+                className="mt-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
               >
                 Shop products
               </button>
@@ -123,7 +123,7 @@ export default function CartDrawer() {
                       <Link
                         href={`/products/${item.slug}`}
                         onClick={close}
-                        className="truncate text-sm font-semibold text-zinc-900 hover:text-lime-700"
+                        className="truncate text-sm font-semibold text-zinc-900 hover:text-blue-700"
                       >
                         {item.name}
                       </Link>
@@ -140,7 +140,7 @@ export default function CartDrawer() {
                         <button
                           aria-label="Decrease quantity"
                           onClick={() => setQty(item.productId, item.quantity - 1)}
-                          className="p-1.5 text-zinc-500 transition hover:text-lime-600"
+                          className="p-1.5 text-zinc-500 transition hover:text-blue-600"
                         >
                           <Minus className="h-4 w-4" />
                         </button>
@@ -150,7 +150,7 @@ export default function CartDrawer() {
                         <button
                           aria-label="Increase quantity"
                           onClick={() => setQty(item.productId, item.quantity + 1)}
-                          className="p-1.5 text-zinc-500 transition hover:text-lime-600"
+                          className="p-1.5 text-zinc-500 transition hover:text-blue-600"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -176,7 +176,7 @@ export default function CartDrawer() {
             </div>
             <button
               onClick={() => go("/checkout")}
-              className="btn-glow mt-3 w-full rounded-full bg-lime-500 px-4 py-3 text-sm font-semibold text-white hover:bg-lime-600"
+              className="btn-glow mt-3 w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-600"
             >
               Checkout
             </button>

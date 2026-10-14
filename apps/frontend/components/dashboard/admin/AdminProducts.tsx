@@ -101,7 +101,7 @@ export default function AdminProducts() {
         </h1>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
         >
           <Plus className="h-4 w-4" />
           New product
@@ -124,7 +124,7 @@ export default function AdminProducts() {
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => openEdit(p)}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-lime-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -177,7 +177,7 @@ export default function AdminProducts() {
                         onClick={() =>
                           stockMutation.mutate({ id: p.id, stock: parseInt(stockValue || "0", 10) })
                         }
-                        className="rounded bg-lime-500 px-2 py-1 text-xs font-medium text-white"
+                        className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white"
                       >
                         Save
                       </button>
@@ -195,7 +195,7 @@ export default function AdminProducts() {
                         setStockId(p.id);
                         setStockValue(String(p.stock));
                       }}
-                      className="font-medium text-zinc-900 hover:text-lime-600 hover:underline"
+                      className="font-medium text-zinc-900 hover:text-blue-600 hover:underline"
                       title="Click to update stock"
                     >
                       {p.stock}
@@ -206,7 +206,7 @@ export default function AdminProducts() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(p)}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-lime-600 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit
@@ -359,7 +359,7 @@ function ProductModal({
             <input className={inputClass} {...register("imageUrl")} />
           </Field>
           <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded text-lime-600" />
+            <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded text-blue-600" />
             Active (visible in store)
           </label>
           <div className="flex justify-end gap-2 pt-2">
@@ -373,7 +373,7 @@ function ProductModal({
             <button
               type="submit"
               disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:opacity-40"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-40"
             >
               {saveMutation.isPending ? "Saving…" : "Save"}
             </button>

@@ -36,7 +36,7 @@ export default function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200/80 transition duration-300 hover:-translate-y-1 hover:shadow-lg hover:ring-lime-500/40">
+    <div className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200/80 transition duration-300 hover:-translate-y-1 hover:shadow-lg hover:ring-blue-600/40">
       <Link
         href={`/products/${product.slug}`}
         className="relative block aspect-square overflow-hidden bg-zinc-100"
@@ -65,13 +65,13 @@ export default function ProductCard({ product }: { product: Product }) {
       </Link>
       <div className="flex flex-1 flex-col gap-1 p-3.5">
         <Link href={`/products/${product.slug}`}>
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-zinc-900 transition hover:text-lime-700">
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-zinc-900 transition hover:text-blue-700">
             {product.name}
           </h3>
         </Link>
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div className="flex flex-col">
-            <span className="font-display text-base font-bold text-lime-700">
+            <span className="font-display text-base font-bold text-blue-700">
               {formatPrice(product.price)}
             </span>
             {hasDiscount && (
@@ -84,7 +84,7 @@ export default function ProductCard({ product }: { product: Product }) {
             onClick={quickAdd}
             disabled={outOfStock}
             aria-label={`Add ${product.name} to cart`}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-lime-500 text-white shadow-sm transition hover:bg-lime-600 disabled:opacity-30"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm transition hover:bg-blue-600 disabled:opacity-30"
           >
             <ShoppingCart className="h-[18px] w-[18px]" />
           </button>

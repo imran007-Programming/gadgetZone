@@ -71,7 +71,7 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
             href={item.href}
             className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
               active
-                ? "bg-lime-100 text-lime-800 ring-1 ring-lime-200"
+                ? "bg-blue-100 text-blue-800 ring-1 ring-blue-200"
                 : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
             }`}
           >
@@ -86,7 +86,7 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
   const userCard = (
     <div className="border-t border-zinc-200 p-4">
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime-100 font-display text-sm font-bold text-lime-700">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-display text-sm font-bold text-blue-700">
           {user?.name?.charAt(0).toUpperCase() ?? "?"}
         </span>
         <div className="min-w-0 flex-1">
@@ -109,11 +109,11 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
 
   const brand = (
     <Link href="/" className="flex items-center gap-2.5 px-5 py-5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime-500 font-display text-lg font-bold text-white">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 font-display text-lg font-bold text-white">
         G
       </span>
       <span className="font-display text-lg font-bold tracking-tight text-zinc-900">
-        Gadget<span className="text-lime-600">Lax</span>
+        Gadget<span className="text-blue-600">Lax</span>
       </span>
     </Link>
   );

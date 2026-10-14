@@ -28,7 +28,7 @@ export default function HelpPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-lime-700">
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-700">
           Support
         </p>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-zinc-900">
@@ -46,7 +46,7 @@ export default function HelpPage() {
               key={t.title}
               className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-zinc-200"
             >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-lime-100 text-lime-700">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
                 <Icon className="h-5 w-5" />
               </span>
               <h2 className="mt-4 font-display text-base font-bold text-zinc-900">
@@ -57,14 +57,14 @@ export default function HelpPage() {
           );
         })}
       </div>
-      <div className="rounded-2xl bg-lime-500 p-6 text-white shadow-sm sm:p-8">
+      <div className="rounded-2xl bg-blue-600 p-6 text-white shadow-sm sm:p-8">
         <h2 className="font-display text-xl font-bold">Need a hand with an order?</h2>
-        <p className="mt-1 text-sm text-lime-50">
+        <p className="mt-1 text-sm text-blue-50">
           Log in to see your orders and reach support with one tap.
         </p>
         <Link
           href="/login"
-          className="mt-4 inline-block rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-lime-700 transition hover:bg-lime-50"
+          className="mt-4 inline-block rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50"
         >
           Go to My Account
         </Link>

@@ -60,8 +60,8 @@ export default function WishlistButton({
       aria-pressed={active}
       className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm ring-1 backdrop-blur transition ${
         active
-          ? "bg-lime-500 text-white ring-lime-500"
-          : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-lime-600 hover:ring-lime-500/60"
+          ? "bg-blue-600 text-white ring-blue-600"
+          : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-blue-600 hover:ring-blue-600/60"
       } ${className}`}
     >
       <Heart

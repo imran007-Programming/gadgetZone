@@ -161,7 +161,7 @@ function ProductsContent() {
               type="checkbox"
               checked={params.inStock === "1"}
               onChange={(e) => setParam({ inStock: e.target.checked ? "1" : "" })}
-              className="h-4 w-4 rounded border-zinc-300 text-lime-600"
+              className="h-4 w-4 rounded border-zinc-300 text-blue-600"
             />
             In stock only
           </label>
@@ -183,7 +183,7 @@ function ProductsContent() {
           action={
             <button
               onClick={() => router.push("/products")}
-              className="rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
             >
               Clear filters
             </button>

@@ -135,7 +135,7 @@ function OrderDetailContent() {
           <button
             onClick={() => payMutation.mutate()}
             disabled={payMutation.isPending}
-            className="rounded-xl bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
+            className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
           >
             {payMutation.isPending ? "Processing…" : "Pay now (mock)"}
           </button>

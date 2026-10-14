@@ -12,7 +12,7 @@ import { useToast } from "@/lib/toast";
 export function Spinner({ label = "Loading…" }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 py-12 text-zinc-500">
-      <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-zinc-200 border-t-lime-600" />
+      <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-zinc-200 border-t-blue-600" />
       <span className="text-sm">{label}</span>
     </div>
   );
@@ -110,7 +110,7 @@ function PageBtn({
       aria-current={active ? "page" : undefined}
       className={`min-w-9 rounded-full px-2.5 py-1.5 text-sm font-medium transition ${
         active
-          ? "bg-lime-500 text-white shadow-sm"
+          ? "bg-blue-600 text-white shadow-sm"
           : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-40"
       }`}
     >
@@ -198,10 +198,10 @@ export function Field({
 }
 
 export const inputClass =
-  "w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-lime-500 focus:outline-none focus:ring-2 focus:ring-lime-500/20";
+  "w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20";
 
 export const primaryBtnClass =
-  "btn-glow rounded-full bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-lime-600 disabled:opacity-40 disabled:hover:bg-lime-500";
+  "btn-glow rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:opacity-40 disabled:hover:bg-blue-600";
 
 export const secondaryBtnClass =
   "rounded-full px-5 py-2.5 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-900";
@@ -210,7 +210,7 @@ export function BackLink({ href = "/", label = "Back" }: { href?: string; label?
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition hover:text-lime-700"
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition hover:text-blue-700"
     >
       <ArrowLeft className="h-4 w-4" aria-hidden /> {label}
     </Link>

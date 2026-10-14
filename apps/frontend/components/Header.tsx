@@ -40,7 +40,7 @@ export default function Header() {
   const linkCls = (href: string) =>
     `rounded-full px-3.5 py-2 text-sm font-medium transition ${
       pathname === href || pathname.startsWith(href + "/")
-        ? "bg-lime-100 text-lime-800"
+        ? "bg-blue-100 text-blue-800"
         : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
     }`;
 
@@ -50,11 +50,11 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-lime-500 font-display text-lg font-bold text-white shadow-sm">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 font-display text-lg font-bold text-white shadow-sm">
             G
           </span>
           <span className="font-display text-lg font-bold tracking-tight text-zinc-900">
-            Gadget<span className="text-lime-600">Lax</span>
+            Gadget<span className="text-blue-600">Lax</span>
           </span>
         </Link>
 
@@ -70,7 +70,7 @@ export default function Header() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for products"
-              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-lime-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime-500/20"
+              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20"
             />
           </div>
         </form>
@@ -93,7 +93,7 @@ export default function Header() {
               >
                 <Heart className="h-5 w-5" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-500 px-1 text-[11px] font-bold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
                     {wishlistCount}
                   </span>
                 )}
@@ -105,7 +105,7 @@ export default function Header() {
               >
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-500 px-1 text-[11px] font-bold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
                     {cartCount}
                   </span>
                 )}
@@ -143,7 +143,7 @@ export default function Header() {
               </Link>
               <Link
                 href="/register"
-                className="btn-glow hidden rounded-full bg-lime-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-lime-600 sm:block"
+                className="btn-glow hidden rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 sm:block"
               >
                 Sign up
               </Link>
@@ -161,7 +161,7 @@ export default function Header() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for products"
-              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-lime-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime-500/20"
+              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20"
             />
           </div>
         </form>

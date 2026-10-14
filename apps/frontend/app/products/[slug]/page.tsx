@@ -78,7 +78,7 @@ export default function ProductDetailPage() {
 
         <div className="flex flex-col gap-4">
           {p.category && (
-            <p className="text-xs font-semibold uppercase tracking-widest text-lime-600">
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">
               {p.category.name}
             </p>
           )}
@@ -121,7 +121,7 @@ export default function ProductDetailPage() {
               <button
                 aria-label="Decrease quantity"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="p-2.5 text-zinc-500 transition hover:text-lime-600"
+                className="p-2.5 text-zinc-500 transition hover:text-blue-600"
               >
                 <Minus className="h-4 w-4" />
               </button>
@@ -130,7 +130,7 @@ export default function ProductDetailPage() {
                 aria-label="Increase quantity"
                 onClick={() => setQty((q) => Math.min(p.stock || 99, q + 1))}
                 disabled={outOfStock}
-                className="p-2.5 text-zinc-500 transition hover:text-lime-600 disabled:opacity-30"
+                className="p-2.5 text-zinc-500 transition hover:text-blue-600 disabled:opacity-30"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -138,7 +138,7 @@ export default function ProductDetailPage() {
             <button
               onClick={handleAdd}
               disabled={outOfStock || adding}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-lime-500 px-6 py-3 text-sm font-semibold text-white shadow hover:bg-lime-600 disabled:opacity-40 sm:flex-none sm:px-10"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow hover:bg-blue-600 disabled:opacity-40 sm:flex-none sm:px-10"
             >
               <ShoppingCart className="h-4 w-4" />
               {adding ? "Adding…" : "Add to cart"}

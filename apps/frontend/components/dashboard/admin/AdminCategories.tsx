@@ -92,7 +92,7 @@ export default function AdminCategories() {
         </h1>
         <button
           onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
         >
           <Plus className="h-4 w-4" />
           New category
@@ -119,7 +119,7 @@ export default function AdminCategories() {
             <button
               type="submit"
               disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-lime-500 px-4 py-2 text-sm font-medium text-white hover:bg-lime-600 disabled:opacity-40"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-40"
             >
               {saveMutation.isPending ? "Saving…" : editing ? "Update" : "Create"}
             </button>
@@ -143,7 +143,7 @@ export default function AdminCategories() {
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => openEdit(c)}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-lime-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
+                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -182,7 +182,7 @@ export default function AdminCategories() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(c)}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-lime-600 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                       Edit

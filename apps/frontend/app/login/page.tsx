@@ -64,7 +64,7 @@ function LoginContent() {
         <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Log in</h1>
         <p className="mt-1 text-sm text-zinc-500">
           New here?{" "}
-          <Link href="/register" className="font-medium text-lime-600 hover:underline">
+          <Link href="/register" className="font-medium text-blue-600 hover:underline">
             Create an account
           </Link>
         </p>
@@ -100,7 +100,7 @@ function LoginContent() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-lime-500 px-4 py-3 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
+            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
           >
             {isSubmitting ? "Logging in…" : "Log in"}
           </button>

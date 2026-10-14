@@ -67,7 +67,7 @@ export default function RegisterPage() {
         <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Create an account</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Already have one?{" "}
-          <Link href="/login" className="font-medium text-lime-600 hover:underline">
+          <Link href="/login" className="font-medium text-blue-600 hover:underline">
             Log in
           </Link>
         </p>
@@ -125,7 +125,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-lime-500 px-4 py-3 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
+            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
           >
             {isSubmitting ? "Creating account…" : "Create account"}
           </button>

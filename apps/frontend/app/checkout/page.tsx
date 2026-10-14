@@ -61,8 +61,8 @@ function GuestPrompt() {
         Checkout
       </h1>
       <div className="rounded-2xl bg-zinc-50 p-8 text-center ring-1 ring-zinc-200">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-lime-100">
-          <Lock className="h-6 w-6 text-lime-600" />
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
+          <Lock className="h-6 w-6 text-blue-600" />
         </span>
         <h2 className="mt-4 text-lg font-bold text-zinc-900">
           One quick step before you order
@@ -81,7 +81,7 @@ function GuestPrompt() {
         <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
           <Link
             href="/login?next=/checkout"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-lime-500 px-6 py-3 text-sm font-semibold text-white hover:bg-lime-600"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-600"
           >
             <LogIn className="h-4 w-4" />
             Log in
@@ -161,7 +161,7 @@ function CheckoutContent() {
         <div className="mt-6 flex justify-center gap-3">
           <button
             onClick={() => router.push(`/orders/${paidOrder.id}`)}
-            className="rounded-xl bg-lime-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-lime-600"
+            className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
           >
             View order
           </button>
@@ -196,7 +196,7 @@ function CheckoutContent() {
           <button
             onClick={() => payOrder.mutate(createdOrder.id)}
             disabled={payOrder.isPending}
-            className="mt-5 w-full rounded-xl bg-lime-500 px-4 py-3 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
+            className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
           >
             {payOrder.isPending
               ? "Processing…"
@@ -279,7 +279,7 @@ function CheckoutContent() {
             <button
               type="submit"
               disabled={createOrder.isPending}
-              className="rounded-xl bg-lime-500 px-6 py-3 text-sm font-semibold text-white hover:bg-lime-600 disabled:opacity-40"
+              className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
             >
               {createOrder.isPending ? "Placing order…" : "Place order"}
             </button>
