@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model User {
+  id             String     @id @default(cuid())
+  email          String     @unique
+  passwordHash   String
+  name           String
+  role           Role       @default(CUSTOMER)
+  // Phase 5: admins can disable accounts; disabled users cannot log in
+  isActive       Boolean    @default(true)
+  // Phase 2: hashed refresh token for rotation + revocation
+  refreshTokenHash String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  cartItems      CartItem[]
+  orders         Order[]
+
+  @@index([role])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  products    Product[]
+
+  @@index([slug])
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String
+  price       Decimal   @db.Decimal(10, 2)
+  comparePrice Decimal? @db.Decimal(10, 2)
+  stock       Int       @default(0)
+  imageUrl    String
+  isActive    Boolean   @default(true)
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int     @default(1)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  status          OrderStatus @default(PENDING)
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  shippingAddress Json
+  createdAt       DateTime    @default(now())
+  items           OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+
+  @@index([orderId])
+}
