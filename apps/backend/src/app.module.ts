@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { CartModule } from './cart/cart.module.js';
+import { WishlistModule } from './wishlist/wishlist.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -38,6 +39,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     ProductsModule,
     CategoriesModule,
     CartModule,
+    WishlistModule,
     OrdersModule,
     AdminModule,
   ],

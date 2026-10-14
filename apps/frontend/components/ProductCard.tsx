@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
+import WishlistButton from "./WishlistButton";
 
 export default function ProductCard({ product }: { product: Product }) {
   const outOfStock = product.stock <= 0;
@@ -25,6 +26,9 @@ export default function ProductCard({ product }: { product: Product }) {
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/50 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
+        <div className="absolute right-2.5 top-2.5">
+          <WishlistButton productId={product.id} productSlug={product.slug} />
+        </div>
         {hasDiscount && (
           <span className="absolute left-2.5 top-2.5 rounded-full bg-lime-400 px-2.5 py-1 text-[11px] font-bold text-zinc-950 shadow-lg">
             -{Math.round((1 - product.price / product.comparePrice!) * 100)}%

@@ -34,6 +34,7 @@ model User {
   updatedAt      DateTime   @updatedAt
   cartItems      CartItem[]
   orders         Order[]
+  wishlistItems  WishlistItem[]
 
   @@index([role])
 }
@@ -64,6 +65,7 @@ model Product {
   updatedAt   DateTime  @updatedAt
   cartItems   CartItem[]
   orderItems  OrderItem[]
+  wishlistItems WishlistItem[]
 
   @@index([slug])
   @@index([categoryId])
@@ -106,4 +108,16 @@ model OrderItem {
   unitPrice Decimal @db.Decimal(10, 2)
 
   @@index([orderId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
 }
