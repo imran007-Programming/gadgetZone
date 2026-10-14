@@ -10,8 +10,8 @@ import { useToast } from "@/lib/toast";
 
 export function Spinner({ label = "Loading…" }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
-      <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
+    <div className="flex items-center justify-center gap-3 py-12 text-zinc-500">
+      <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-zinc-700 border-t-lime-400" />
       <span className="text-sm">{label}</span>
     </div>
   );
@@ -27,9 +27,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
-      <p className="text-base font-semibold text-slate-700">{title}</p>
-      {hint && <p className="mt-1 text-sm text-slate-500">{hint}</p>}
+    <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/60 px-6 py-14 text-center">
+      <p className="font-display text-base font-semibold text-zinc-200">{title}</p>
+      {hint && <p className="mt-1 text-sm text-zinc-500">{hint}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
@@ -43,13 +43,13 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-rose-200 bg-rose-50 px-6 py-10 text-center">
-      <p className="text-sm font-semibold text-rose-700">Something went wrong</p>
-      <p className="mt-1 text-sm text-rose-600">{message}</p>
+    <div className="rounded-2xl border border-rose-400/25 bg-rose-400/5 px-6 py-10 text-center">
+      <p className="text-sm font-semibold text-rose-300">Something went wrong</p>
+      <p className="mt-1 text-sm text-rose-400/80">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-4 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700"
+          className="mt-4 rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-400"
         >
           Try again
         </button>
@@ -72,12 +72,12 @@ export function Pagination({
     (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2
   );
   return (
-    <nav className="flex items-center justify-center gap-1" aria-label="Pagination">
+    <nav className="flex items-center justify-center gap-1.5" aria-label="Pagination">
       <PageBtn disabled={page <= 1} onClick={() => onPage(page - 1)} label="‹ Prev" />
       {pages.map((p, i) => (
-        <span key={p} className="flex items-center gap-1">
+        <span key={p} className="flex items-center gap-1.5">
           {i > 0 && pages[i - 1] !== p - 1 && (
-            <span className="px-1 text-slate-400">…</span>
+            <span className="px-1 text-zinc-600">…</span>
           )}
           <PageBtn active={p === page} onClick={() => onPage(p)} label={String(p)} />
         </span>
@@ -107,10 +107,10 @@ function PageBtn({
       onClick={onClick}
       disabled={disabled}
       aria-current={active ? "page" : undefined}
-      className={`min-w-9 rounded-lg px-2.5 py-1.5 text-sm font-medium transition ${
+      className={`min-w-9 rounded-full px-2.5 py-1.5 text-sm font-medium transition ${
         active
-          ? "bg-indigo-600 text-white"
-          : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-40"
+          ? "bg-lime-400 text-zinc-950 shadow-[0_0_16px_-4px_rgba(163,230,53,0.6)]"
+          : "bg-zinc-900 text-zinc-400 ring-1 ring-zinc-800 hover:bg-zinc-800 hover:text-zinc-100 disabled:opacity-40"
       }`}
     >
       {label}
@@ -153,18 +153,18 @@ export function RequireAuth({
 }
 
 export const STATUS_STYLES: Record<string, string> = {
-  PENDING: "bg-amber-100 text-amber-800",
-  PAID: "bg-blue-100 text-blue-800",
-  SHIPPED: "bg-violet-100 text-violet-800",
-  DELIVERED: "bg-emerald-100 text-emerald-800",
-  CANCELLED: "bg-slate-200 text-slate-600",
+  PENDING: "bg-amber-400/15 text-amber-300 ring-1 ring-amber-400/25",
+  PAID: "bg-blue-400/15 text-blue-300 ring-1 ring-blue-400/25",
+  SHIPPED: "bg-violet-400/15 text-violet-300 ring-1 ring-violet-400/25",
+  DELIVERED: "bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-400/25",
+  CANCELLED: "bg-zinc-700/60 text-zinc-400 ring-1 ring-zinc-700",
 };
 
 export function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-        STATUS_STYLES[status] ?? "bg-slate-100 text-slate-600"
+        STATUS_STYLES[status] ?? "bg-zinc-800 text-zinc-400 ring-1 ring-zinc-700"
       }`}
     >
       {status}
@@ -188,24 +188,30 @@ export function Field({
     <div>
       <label
         htmlFor={htmlFor}
-        className="mb-1 block text-sm font-medium text-slate-700"
+        className="mb-1.5 block text-sm font-medium text-zinc-300"
       >
         {label}
       </label>
       {children}
-      {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
+      {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
     </div>
   );
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100";
+  "w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 transition focus:border-lime-400 focus:outline-none focus:ring-2 focus:ring-lime-400/20";
+
+export const primaryBtnClass =
+  "btn-glow rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-lime-300 disabled:opacity-40 disabled:hover:bg-lime-400";
+
+export const secondaryBtnClass =
+  "rounded-full px-5 py-2.5 text-sm font-semibold text-zinc-300 ring-1 ring-zinc-700 transition hover:bg-zinc-800 hover:text-zinc-100";
 
 export function BackLink({ href = "/", label = "Back" }: { href?: string; label?: string }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-indigo-600"
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition hover:text-lime-300"
     >
       <span aria-hidden>←</span> {label}
     </Link>

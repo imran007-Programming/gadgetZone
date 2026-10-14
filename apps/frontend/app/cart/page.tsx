@@ -80,7 +80,7 @@ function CartContent() {
         action={
           <Link
             href="/products"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
           >
             Shop products
           </Link>
@@ -92,14 +92,14 @@ function CartContent() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
           Cart ({cart.itemCount} item{cart.itemCount === 1 ? "" : "s"})
         </h1>
         <button
           onClick={() => {
             if (window.confirm("Clear the whole cart?")) clearCart.mutate();
           }}
-          className="text-sm font-medium text-rose-600 hover:underline"
+          className="text-sm font-medium text-rose-400 hover:underline"
         >
           Clear cart
         </button>
@@ -110,11 +110,11 @@ function CartContent() {
           {cart.items.map((item) => (
             <li
               key={item.productId}
-              className="flex gap-4 rounded-xl bg-white p-3 ring-1 ring-slate-200"
+              className="flex gap-4 rounded-xl bg-zinc-900 p-3 ring-1 ring-zinc-800"
             >
               <Link
                 href={`/products/${item.product.slug}`}
-                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100"
+                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800"
               >
                 <Image
                   src={item.product.imageUrl}
@@ -128,21 +128,21 @@ function CartContent() {
                 <div className="flex items-start justify-between gap-2">
                   <Link
                     href={`/products/${item.product.slug}`}
-                    className="truncate text-sm font-semibold text-slate-900 hover:text-indigo-700"
+                    className="truncate text-sm font-semibold text-zinc-50 hover:text-lime-300"
                   >
                     {item.product.name}
                   </Link>
                   <button
                     onClick={() => removeItem.mutate(item.productId)}
-                    className="text-xs font-medium text-rose-600 hover:underline"
+                    className="text-xs font-medium text-rose-400 hover:underline"
                     aria-label={`Remove ${item.product.name}`}
                   >
                     Remove
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">{formatPrice(item.product.price)} each</p>
+                <p className="text-xs text-zinc-500">{formatPrice(item.product.price)} each</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
-                  <div className="flex items-center rounded-lg ring-1 ring-slate-300">
+                  <div className="flex items-center rounded-lg ring-1 ring-zinc-700">
                     <button
                       aria-label="Decrease quantity"
                       onClick={() =>
@@ -153,7 +153,7 @@ function CartContent() {
                             })
                           : removeItem.mutate(item.productId)
                       }
-                      className="px-2.5 py-1 text-base font-bold text-slate-600 hover:text-indigo-600"
+                      className="px-2.5 py-1 text-base font-bold text-zinc-400 hover:text-lime-400"
                     >
                       −
                     </button>
@@ -168,12 +168,12 @@ function CartContent() {
                           quantity: item.quantity + 1,
                         })
                       }
-                      className="px-2.5 py-1 text-base font-bold text-slate-600 hover:text-indigo-600"
+                      className="px-2.5 py-1 text-base font-bold text-zinc-400 hover:text-lime-400"
                     >
                       +
                     </button>
                   </div>
-                  <p className="text-sm font-bold text-slate-900">
+                  <p className="text-sm font-bold text-zinc-50">
                     {formatPrice(item.lineTotal)}
                   </p>
                 </div>
@@ -182,18 +182,18 @@ function CartContent() {
           ))}
         </ul>
 
-        <aside className="h-fit rounded-xl bg-white p-5 ring-1 ring-slate-200 lg:sticky lg:top-24">
-          <h2 className="text-base font-bold text-slate-900">Order summary</h2>
-          <div className="mt-3 flex justify-between text-sm text-slate-600">
+        <aside className="h-fit rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800 lg:sticky lg:top-24">
+          <h2 className="text-base font-bold text-zinc-50">Order summary</h2>
+          <div className="mt-3 flex justify-between text-sm text-zinc-400">
             <span>Subtotal</span>
-            <span className="font-semibold text-slate-900">{formatPrice(cart.subtotal)}</span>
+            <span className="font-semibold text-zinc-50">{formatPrice(cart.subtotal)}</span>
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-zinc-500">
             Shipping calculated at checkout.
           </p>
           <button
             onClick={() => router.push("/checkout")}
-            className="mt-4 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+            className="mt-4 w-full rounded-xl bg-lime-400 px-4 py-3 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
           >
             Proceed to checkout
           </button>

@@ -50,16 +50,16 @@ function AdminContent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">Admin panel</h1>
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">Admin panel</h1>
+      <div className="flex gap-1 overflow-x-auto border-b border-zinc-800">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`whitespace-nowrap px-4 py-2.5 text-sm font-medium transition ${
               tab === t.id
-                ? "border-b-2 border-indigo-600 text-indigo-700"
-                : "text-slate-500 hover:text-slate-900"
+                ? "border-b-2 border-lime-400 text-lime-300"
+                : "text-zinc-500 hover:text-zinc-50"
             }`}
           >
             {t.label}
@@ -109,40 +109,40 @@ function DashboardTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-xl bg-white p-5 ring-1 ring-slate-200">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+          <div key={c.label} className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
               {c.label}
             </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{c.value}</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-50">{c.value}</p>
           </div>
         ))}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl bg-white p-5 ring-1 ring-slate-200">
-          <h2 className="mb-3 text-sm font-bold text-slate-900">Orders by status</h2>
+        <div className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
+          <h2 className="mb-3 text-sm font-bold text-zinc-50">Orders by status</h2>
           <ul className="space-y-2">
             {(Object.keys(s.ordersByStatus) as OrderStatus[]).map((st) => (
               <li key={st} className="flex items-center justify-between text-sm">
                 <StatusBadge status={st} />
-                <span className="font-semibold text-slate-900">{s.ordersByStatus[st]}</span>
+                <span className="font-semibold text-zinc-50">{s.ordersByStatus[st]}</span>
               </li>
             ))}
           </ul>
         </div>
-        <div className="rounded-xl bg-white p-5 ring-1 ring-slate-200">
-          <h2 className="mb-3 text-sm font-bold text-slate-900">
+        <div className="rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800">
+          <h2 className="mb-3 text-sm font-bold text-zinc-50">
             Low stock (under 10 units)
           </h2>
           {s.lowStock.length === 0 ? (
-            <p className="text-sm text-slate-500">All stocked up.</p>
+            <p className="text-sm text-zinc-500">All stocked up.</p>
           ) : (
             <ul className="space-y-2">
               {s.lowStock.map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-sm">
-                  <span className="truncate font-medium text-slate-700">{p.name}</span>
+                  <span className="truncate font-medium text-zinc-200">{p.name}</span>
                   <span
-                    className={`font-bold ${p.stock === 0 ? "text-rose-600" : "text-amber-600"}`}
+                    className={`font-bold ${p.stock === 0 ? "text-rose-400" : "text-amber-400"}`}
                   >
                     {p.stock} left
                   </span>
@@ -236,20 +236,20 @@ function ProductsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-zinc-500">
           {productsQuery.data.meta.total} active products
         </p>
         <button
           onClick={openCreate}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
         >
           + New product
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-200">
+      <div className="overflow-x-auto rounded-xl bg-zinc-900 ring-1 ring-zinc-800">
         <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-slate-100 text-xs uppercase text-slate-500">
+          <thead className="border-b border-zinc-800 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Price</th>
@@ -257,12 +257,12 @@ function ProductsTab() {
               <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-zinc-800">
             {productsQuery.data.items.map((p) => (
-              <tr key={p.id} className="hover:bg-slate-50">
+              <tr key={p.id} className="hover:bg-zinc-950">
                 <td className="px-4 py-3">
-                  <p className="font-medium text-slate-900">{p.name}</p>
-                  <p className="font-mono text-xs text-slate-400">{p.slug}</p>
+                  <p className="font-medium text-zinc-50">{p.name}</p>
+                  <p className="font-mono text-xs text-zinc-500">{p.slug}</p>
                 </td>
                 <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
                 <td className="px-4 py-3">
@@ -273,19 +273,19 @@ function ProductsTab() {
                         min={0}
                         value={stockValue}
                         onChange={(e) => setStockValue(e.target.value)}
-                        className="w-20 rounded border border-slate-300 px-2 py-1 text-sm"
+                        className="w-20 rounded border border-zinc-700 px-2 py-1 text-sm"
                       />
                       <button
                         onClick={() =>
                           stockMutation.mutate({ id: p.id, stock: parseInt(stockValue || "0", 10) })
                         }
-                        className="rounded bg-indigo-600 px-2 py-1 text-xs font-medium text-white"
+                        className="rounded bg-lime-400 px-2 py-1 text-xs font-medium text-zinc-950"
                       >
                         Save
                       </button>
                       <button
                         onClick={() => setStockId(null)}
-                        className="rounded px-2 py-1 text-xs text-slate-500"
+                        className="rounded px-2 py-1 text-xs text-zinc-500"
                       >
                         ✕
                       </button>
@@ -296,7 +296,7 @@ function ProductsTab() {
                         setStockId(p.id);
                         setStockValue(String(p.stock));
                       }}
-                      className="font-medium text-slate-900 hover:text-indigo-600 hover:underline"
+                      className="font-medium text-zinc-50 hover:text-lime-400 hover:underline"
                       title="Click to update stock"
                     >
                       {p.stock}
@@ -307,7 +307,7 @@ function ProductsTab() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(p)}
-                      className="text-xs font-medium text-indigo-600 hover:underline"
+                      className="text-xs font-medium text-lime-400 hover:underline"
                     >
                       Edit
                     </button>
@@ -316,7 +316,7 @@ function ProductsTab() {
                         if (window.confirm(`Deactivate "${p.name}"? It will be hidden from the store.`))
                           deleteMutation.mutate(p.id);
                       }}
-                      className="text-xs font-medium text-rose-600 hover:underline"
+                      className="text-xs font-medium text-rose-400 hover:underline"
                     >
                       Deactivate
                     </button>
@@ -327,7 +327,7 @@ function ProductsTab() {
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-zinc-500">
         Note: deactivated products are hidden from this list (the public API only
         returns active products).
       </p>
@@ -402,12 +402,12 @@ function ProductModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-zinc-900 p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">
+          <h2 className="text-lg font-bold text-zinc-50">
             {product ? "Edit product" : "New product"}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700" aria-label="Close">
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200" aria-label="Close">
             ✕
           </button>
         </div>
@@ -458,22 +458,22 @@ function ProductModal({
           <Field label="Image URL" error={errors.imageUrl?.message}>
             <input className={inputClass} {...register("imageUrl")} />
           </Field>
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded text-indigo-600" />
+          <label className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+            <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded text-lime-400" />
             Active (visible in store)
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-800"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+              className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300 disabled:opacity-40"
             >
               {saveMutation.isPending ? "Saving…" : "Save"}
             </button>
@@ -562,10 +562,10 @@ function CategoriesTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">{categoriesQuery.data.length} categories</p>
+        <p className="text-sm text-zinc-500">{categoriesQuery.data.length} categories</p>
         <button
           onClick={openCreate}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
         >
           + New category
         </button>
@@ -574,7 +574,7 @@ function CategoriesTab() {
       {showForm && (
         <form
           onSubmit={handleSubmit((v) => saveMutation.mutate(v))}
-          className="grid gap-4 rounded-xl bg-white p-5 ring-1 ring-slate-200 sm:grid-cols-3"
+          className="grid gap-4 rounded-xl bg-zinc-900 p-5 ring-1 ring-zinc-800 sm:grid-cols-3"
           noValidate
         >
           <Field label="Name" error={errors.name?.message}>
@@ -590,14 +590,14 @@ function CategoriesTab() {
             <button
               type="submit"
               disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+              className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300 disabled:opacity-40"
             >
               {saveMutation.isPending ? "Saving…" : editing ? "Update" : "Create"}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-800"
             >
               Cancel
             </button>
@@ -605,25 +605,25 @@ function CategoriesTab() {
         </form>
       )}
 
-      <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-200">
+      <div className="overflow-x-auto rounded-xl bg-zinc-900 ring-1 ring-zinc-800">
         <table className="w-full min-w-[560px] text-left text-sm">
-          <thead className="border-b border-slate-100 text-xs uppercase text-slate-500">
+          <thead className="border-b border-zinc-800 text-xs uppercase text-zinc-500">
             <tr>
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-zinc-800">
             {categoriesQuery.data.map((c) => (
-              <tr key={c.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-900">{c.name}</td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-500">{c.slug}</td>
+              <tr key={c.id} className="hover:bg-zinc-950">
+                <td className="px-4 py-3 font-medium text-zinc-50">{c.name}</td>
+                <td className="px-4 py-3 font-mono text-xs text-zinc-500">{c.slug}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(c)}
-                      className="text-xs font-medium text-indigo-600 hover:underline"
+                      className="text-xs font-medium text-lime-400 hover:underline"
                     >
                       Edit
                     </button>
@@ -632,7 +632,7 @@ function CategoriesTab() {
                         if (window.confirm(`Delete category "${c.name}"? Only empty categories can be deleted.`))
                           deleteMutation.mutate(c.id);
                       }}
-                      className="text-xs font-medium text-rose-600 hover:underline"
+                      className="text-xs font-medium text-rose-400 hover:underline"
                     >
                       Delete
                     </button>
@@ -685,11 +685,11 @@ function OrdersTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-slate-600">Status filter</label>
+        <label className="text-sm font-medium text-zinc-400">Status filter</label>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+          className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm"
         >
           <option value="">All</option>
           {ORDER_STATUSES.map((s) => (
@@ -703,9 +703,9 @@ function OrdersTab() {
       {ordersQuery.data.length === 0 ? (
         <EmptyState title="No orders found" />
       ) : (
-        <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-200">
+        <div className="overflow-x-auto rounded-xl bg-zinc-900 ring-1 ring-zinc-800">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-slate-100 text-xs uppercase text-slate-500">
+            <thead className="border-b border-zinc-800 text-xs uppercase text-zinc-500">
               <tr>
                 <th className="px-4 py-3">Order</th>
                 <th className="px-4 py-3">Date</th>
@@ -714,11 +714,11 @@ function OrdersTab() {
                 <th className="px-4 py-3">Update</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-zinc-800">
               {ordersQuery.data.map((o) => (
-                <tr key={o.id} className="hover:bg-slate-50">
+                <tr key={o.id} className="hover:bg-zinc-950">
                   <td className="px-4 py-3 font-mono text-xs">#{o.id.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-4 py-3 text-xs text-zinc-500">
                     {new Date(o.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 font-medium">{formatPrice(o.totalAmount)}</td>
@@ -732,7 +732,7 @@ function OrdersTab() {
                         statusMutation.mutate({ id: o.id, status: e.target.value as OrderStatus })
                       }
                       disabled={statusMutation.isPending}
-                      className="rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                      className="rounded-lg border border-zinc-700 px-2 py-1 text-xs"
                       aria-label={`Update status for order ${o.id.slice(0, 8)}`}
                     >
                       {ORDER_STATUSES.map((s) => (
@@ -748,7 +748,7 @@ function OrdersTab() {
           </table>
         </div>
       )}
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-zinc-500">
         Valid transitions: PENDING → PAID/CANCELLED, PAID → SHIPPED, SHIPPED →
         DELIVERED. Invalid moves are rejected by the API.
       </p>
@@ -793,26 +793,26 @@ function UsersTab() {
         <EmptyState title="No users found" />
       ) : (
         usersQuery.data.map((u) => (
-          <div key={u.id} className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+          <div key={u.id} className="rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-sm font-semibold text-zinc-50">
                   {u.name}{" "}
-                  <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                  <span className="ml-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-400">
                     {u.role}
                   </span>
                   {!u.isActive && (
-                    <span className="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700">
+                    <span className="ml-1 rounded-full bg-rose-400/15 px-2 py-0.5 text-[11px] font-medium text-rose-300">
                       disabled
                     </span>
                   )}
                 </p>
-                <p className="text-xs text-slate-500">{u.email}</p>
+                <p className="text-xs text-zinc-500">{u.email}</p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setExpanded(expanded === u.id ? null : u.id)}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-400 ring-1 ring-zinc-800 hover:bg-zinc-950"
                 >
                   {expanded === u.id ? "Hide orders" : "View orders"}
                 </button>
@@ -824,8 +824,8 @@ function UsersTab() {
                     disabled={toggleMutation.isPending}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
                       u.isActive
-                        ? "text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50"
-                        : "text-emerald-600 ring-1 ring-emerald-200 hover:bg-emerald-50"
+                        ? "text-rose-400 ring-1 ring-rose-400/30 hover:bg-rose-400/10"
+                        : "text-emerald-400 ring-1 ring-emerald-400/25 hover:bg-emerald-50"
                     }`}
                   >
                     {u.isActive ? "Disable" : "Enable"}
@@ -850,22 +850,22 @@ function UserOrders({ userId }: { userId: string }) {
   if (ordersQuery.isPending) return <Spinner label="Loading orders…" />;
   if (ordersQuery.isError)
     return (
-      <p className="mt-3 text-xs text-rose-600">
+      <p className="mt-3 text-xs text-rose-400">
         {(ordersQuery.error as Error).message}
       </p>
     );
   if (ordersQuery.data.length === 0)
-    return <p className="mt-3 text-xs text-slate-500">No orders.</p>;
+    return <p className="mt-3 text-xs text-zinc-500">No orders.</p>;
 
   return (
-    <ul className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
+    <ul className="mt-3 space-y-1.5 border-t border-zinc-800 pt-3">
       {ordersQuery.data.map((o) => (
         <li key={o.id} className="flex items-center justify-between text-xs">
-          <span className="font-mono text-slate-500">#{o.id.slice(0, 8)}</span>
-          <span className="text-slate-500">
+          <span className="font-mono text-zinc-500">#{o.id.slice(0, 8)}</span>
+          <span className="text-zinc-500">
             {new Date(o.createdAt).toLocaleDateString()}
           </span>
-          <span className="font-medium text-slate-900">{formatPrice(o.totalAmount)}</span>
+          <span className="font-medium text-zinc-50">{formatPrice(o.totalAmount)}</span>
           <StatusBadge status={o.status} />
         </li>
       ))}

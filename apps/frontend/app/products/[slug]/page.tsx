@@ -72,7 +72,7 @@ export default function ProductDetailPage() {
     <div className="space-y-6">
       <BackLink href="/products" label="Back to products" />
       <div className="grid gap-8 md:grid-cols-2">
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">
+        <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-800 ring-1 ring-zinc-800">
           <Image
             src={p.imageUrl}
             alt={p.name}
@@ -85,24 +85,24 @@ export default function ProductDetailPage() {
 
         <div className="flex flex-col gap-4">
           {p.category && (
-            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-600">
+            <p className="text-xs font-semibold uppercase tracking-widest text-lime-400">
               {p.category.name}
             </p>
           )}
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-extrabold tracking-tight text-zinc-50">
             {p.name}
           </h1>
 
           <div className="flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-slate-900">
+            <span className="text-3xl font-bold text-zinc-50">
               {formatPrice(p.price)}
             </span>
             {hasDiscount && (
               <>
-                <span className="text-lg text-slate-400 line-through">
+                <span className="text-lg text-zinc-500 line-through">
                   {formatPrice(p.comparePrice!)}
                 </span>
-                <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-700">
+                <span className="rounded-full bg-rose-400/15 px-2.5 py-0.5 text-xs font-bold text-rose-300">
                   Save {formatPrice(p.comparePrice! - p.price)}
                 </span>
               </>
@@ -111,7 +111,7 @@ export default function ProductDetailPage() {
 
           <p
             className={`text-sm font-medium ${
-              outOfStock ? "text-rose-600" : p.stock < 10 ? "text-amber-600" : "text-emerald-600"
+              outOfStock ? "text-rose-400" : p.stock < 10 ? "text-amber-400" : "text-emerald-400"
             }`}
           >
             {outOfStock
@@ -121,14 +121,14 @@ export default function ProductDetailPage() {
                 : "In stock"}
           </p>
 
-          <p className="text-sm leading-relaxed text-slate-600">{p.description}</p>
+          <p className="text-sm leading-relaxed text-zinc-400">{p.description}</p>
 
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <div className="flex items-center rounded-lg ring-1 ring-slate-300">
+            <div className="flex items-center rounded-lg ring-1 ring-zinc-700">
               <button
                 aria-label="Decrease quantity"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="px-3 py-2 text-lg font-bold text-slate-600 hover:text-indigo-600"
+                className="px-3 py-2 text-lg font-bold text-zinc-400 hover:text-lime-400"
               >
                 −
               </button>
@@ -137,7 +137,7 @@ export default function ProductDetailPage() {
                 aria-label="Increase quantity"
                 onClick={() => setQty((q) => Math.min(p.stock || 99, q + 1))}
                 disabled={outOfStock}
-                className="px-3 py-2 text-lg font-bold text-slate-600 hover:text-indigo-600 disabled:opacity-30"
+                className="px-3 py-2 text-lg font-bold text-zinc-400 hover:text-lime-400 disabled:opacity-30"
               >
                 +
               </button>
@@ -145,7 +145,7 @@ export default function ProductDetailPage() {
             <button
               onClick={handleAdd}
               disabled={outOfStock || addMutation.isPending}
-              className="flex-1 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-40 sm:flex-none sm:px-10"
+              className="flex-1 rounded-xl bg-lime-400 px-6 py-3 text-sm font-semibold text-zinc-950 shadow hover:bg-lime-300 disabled:opacity-40 sm:flex-none sm:px-10"
             >
               {addMutation.isPending ? "Adding…" : "Add to cart"}
             </button>

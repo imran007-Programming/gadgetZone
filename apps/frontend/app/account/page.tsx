@@ -28,31 +28,31 @@ function AccountContent() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">Account</h1>
-      <div className="rounded-xl bg-white p-6 ring-1 ring-slate-200">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">Account</h1>
+      <div className="rounded-xl bg-zinc-900 p-6 ring-1 ring-zinc-800">
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Name</dt>
-            <dd className="font-medium text-slate-900">{user.name}</dd>
+            <dt className="text-zinc-500">Name</dt>
+            <dd className="font-medium text-zinc-50">{user.name}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Email</dt>
-            <dd className="font-medium text-slate-900">{user.email}</dd>
+            <dt className="text-zinc-500">Email</dt>
+            <dd className="font-medium text-zinc-50">{user.email}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Role</dt>
-            <dd className="font-medium text-slate-900">{user.role}</dd>
+            <dt className="text-zinc-500">Role</dt>
+            <dd className="font-medium text-zinc-50">{user.role}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-slate-500">Member since</dt>
-            <dd className="font-medium text-slate-900">
+            <dt className="text-zinc-500">Member since</dt>
+            <dd className="font-medium text-zinc-50">
               {new Date(user.createdAt).toLocaleDateString()}
             </dd>
           </div>
         </dl>
         <button
           onClick={handleLogout}
-          className="mt-6 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50"
+          className="mt-6 w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-rose-400 ring-1 ring-rose-400/30 hover:bg-rose-400/10"
         >
           Log out
         </button>

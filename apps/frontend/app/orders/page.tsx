@@ -40,7 +40,7 @@ function OrdersContent() {
         action={
           <Link
             href="/products"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
           >
             Start shopping
           </Link>
@@ -51,25 +51,25 @@ function OrdersContent() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">My orders</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">My orders</h1>
       <ul className="space-y-3">
         {orders.map((o) => (
           <li key={o.id}>
             <Link
               href={`/orders/${o.id}`}
-              className="flex items-center justify-between gap-4 rounded-xl bg-white p-4 ring-1 ring-slate-200 transition hover:shadow-md"
+              className="flex items-center justify-between gap-4 rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800 transition hover:shadow-md"
             >
               <div>
-                <p className="font-mono text-sm font-semibold text-slate-900">
+                <p className="font-mono text-sm font-semibold text-zinc-50">
                   #{o.id.slice(0, 8)}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-zinc-500">
                   {new Date(o.createdAt).toLocaleDateString()} · {o.items.length} item
                   {o.items.length === 1 ? "" : "s"}
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-slate-900">
+                <span className="text-sm font-bold text-zinc-50">
                   {formatPrice(o.totalAmount)}
                 </span>
                 <StatusBadge status={o.status} />

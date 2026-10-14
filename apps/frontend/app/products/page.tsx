@@ -79,10 +79,10 @@ function ProductsContent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">Products</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">Products</h1>
 
       {/* Filters — all reflected in the URL */}
-      <div className="grid grid-cols-2 gap-3 rounded-xl bg-white p-4 ring-1 ring-slate-200 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 rounded-xl bg-zinc-900 p-4 ring-1 ring-zinc-800 sm:grid-cols-3 lg:grid-cols-6">
         <div className="col-span-2 sm:col-span-1">
           <Field label="Search">
             <input
@@ -156,12 +156,12 @@ function ProductsContent() {
           </select>
         </Field>
         <div className="flex items-end pb-0.5">
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-200">
             <input
               type="checkbox"
               checked={params.inStock === "1"}
               onChange={(e) => setParam({ inStock: e.target.checked ? "1" : "" })}
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+              className="h-4 w-4 rounded border-zinc-700 text-lime-400"
             />
             In stock only
           </label>
@@ -183,7 +183,7 @@ function ProductsContent() {
           action={
             <button
               onClick={() => router.push("/products")}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
             >
               Clear filters
             </button>
@@ -191,7 +191,7 @@ function ProductsContent() {
         />
       ) : (
         <>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-zinc-500">
             {productsQuery.data.meta.total} product
             {productsQuery.data.meta.total === 1 ? "" : "s"} found
           </p>

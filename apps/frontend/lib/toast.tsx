@@ -29,7 +29,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 const KIND_STYLES: Record<ToastKind, string> = {
   success: "bg-emerald-600",
   error: "bg-rose-600",
-  info: "bg-slate-800",
+  info: "bg-zinc-700",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
