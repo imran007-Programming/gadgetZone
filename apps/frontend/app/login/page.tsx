@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/lib/auth";
+import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { Field, Spinner, inputClass } from "@/components/ui";
 
@@ -27,11 +28,11 @@ export default function LoginPage() {
 }
 
 function LoginContent() {
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading, user, isAdmin } = useAuth();
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/";
+  const next = searchParams.get("next");
 
   const {
     register,
@@ -40,15 +41,28 @@ function LoginContent() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
+  // Role-aware redirect: admins → /admin, customers → next or /
+  const getRedirect = () => {
+    if (isAdmin) return "/admin";
+    return next ?? "/";
+  };
+
   useEffect(() => {
-    if (!isLoading && isAuthenticated) router.replace(next);
-  }, [isLoading, isAuthenticated, router, next]);
+    if (!isLoading && isAuthenticated) router.replace(getRedirect());
+  }, [isLoading, isAuthenticated, isAdmin, router, next]);
 
   const onSubmit = async (values: LoginForm) => {
     try {
       await login(values.email, values.password);
       toast.success("Welcome back!");
-      router.push(next);
+      // Fetch the fresh session to get the role, then redirect accordingly.
+      // (The useEffect above is a fallback for session restores.)
+      try {
+        const me = await apiClient.get<{ role: string }>("/auth/me");
+        router.push(me.role === "ADMIN" ? "/admin" : (next ?? "/"));
+      } catch {
+        router.push(next ?? "/");
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Login failed";
       setError("root", { message });
