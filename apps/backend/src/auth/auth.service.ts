@@ -208,20 +208,24 @@ export class AuthService {
   }
 
   private refreshCookieOptions(): CookieOptions {
+    // Cross-domain (Vercel frontend + Render backend) needs SameSite=None + Secure
+    // so the browser sends the cookie. Same-origin dev can use Lax.
+    const crossDomain = this.isProduction;
     return {
       httpOnly: true,
-      secure: this.isProduction,
-      sameSite: 'lax',
+      secure: crossDomain ? true : this.isProduction,
+      sameSite: crossDomain ? 'none' : 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
   }
 
   private clearRefreshCookie(res: Response): void {
+    const crossDomain = this.isProduction;
     res.clearCookie(REFRESH_TOKEN_COOKIE, {
       httpOnly: true,
-      secure: this.isProduction,
-      sameSite: 'lax',
+      secure: crossDomain ? true : this.isProduction,
+      sameSite: crossDomain ? 'none' : 'lax',
       path: '/',
     });
   }
