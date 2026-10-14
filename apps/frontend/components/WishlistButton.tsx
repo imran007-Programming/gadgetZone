@@ -85,14 +85,14 @@ export default function WishlistButton({
       aria-pressed={active}
       className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm ring-1 backdrop-blur transition ${
         active
-          ? "bg-rose-50 text-rose-600 ring-rose-200"
-          : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-rose-500 hover:ring-rose-200"
+          ? "bg-blue-600 text-white ring-blue-600"
+          : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-blue-600 hover:ring-blue-600/60"
       } ${className}`}
     >
       <Heart
         className="h-[18px] w-[18px]"
         fill={active ? "currentColor" : "none"}
-        strokeWidth={active ? 0 : 2}
+        strokeWidth={2}
       />
     </button>
   );
