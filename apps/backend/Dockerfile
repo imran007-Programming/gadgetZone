@@ -15,4 +15,4 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY package*.json ./
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate resolve --applied 20261014135314_init || true; npx prisma migrate resolve --applied 20261014140408_add_user_isactive || true; npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/main.js"]
