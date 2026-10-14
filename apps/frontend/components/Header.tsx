@@ -7,12 +7,12 @@ import {
   Heart,
   LayoutDashboard,
   LogOut,
-  Search,
   ShoppingCart,
   User,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
+import SearchBar from "./SearchBar";
 import { useCartStore, selectItemCount } from "@/lib/store/cart";
 import { useWishlistStore, selectWishlistCount } from "@/lib/store/wishlist";
 
@@ -24,17 +24,11 @@ export default function Header() {
   const openCartDrawer = useCartStore((s) => s.openDrawer);
   const cartCount = useCartStore(selectItemCount);
   const wishlistCount = useWishlistStore(selectWishlistCount);
-  const [query, setQuery] = useState("");
 
   const handleLogout = async () => {
     await logout();
     toast.success("Logged out");
     router.push("/");
-  };
-
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push(`/products${query.trim() ? `?q=${encodeURIComponent(query.trim())}` : ""}`);
   };
 
   const linkCls = (href: string) =>
@@ -58,22 +52,8 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Prominent search */}
-        <form
-          onSubmit={submitSearch}
-          className="hidden min-w-0 flex-1 items-center md:flex"
-          role="search"
-        >
-          <div className="relative w-full max-w-xl">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for products"
-              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-            />
-          </div>
-        </form>
+        {/* Prominent search (desktop) */}
+        <SearchBar className="hidden min-w-0 flex-1 md:block" />
 
         <nav className="hidden items-center gap-1 lg:flex">
           <Link href="/" className={linkCls("/")}>Home</Link>
@@ -84,34 +64,30 @@ export default function Header() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
-          {!isAdmin && (
-            <>
-              <Link
-                href={isAuthenticated ? "/dashboard/wishlist" : "/wishlist"}
-                className="relative rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
-                aria-label="Wishlist"
-              >
-                <Heart className="h-5 w-5" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
-                    {wishlistCount}
-                  </span>
-                )}
-              </Link>
-              <button
-                onClick={openCartDrawer}
-                className="relative rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
-                aria-label="Open cart"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-            </>
-          )}
+          <Link
+            href={isAuthenticated ? "/dashboard/wishlist" : "/wishlist"}
+            className="relative rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+            aria-label="Wishlist"
+          >
+            <Heart className="h-5 w-5" />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
+          <button
+            onClick={openCartDrawer}
+            className="relative rounded-full p-2.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+            aria-label="Open cart"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cartCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
+                {cartCount}
+              </span>
+            )}
+          </button>
           {isAuthenticated ? (
             <div className="flex items-center gap-1">
               <Link
@@ -154,17 +130,7 @@ export default function Header() {
 
       {/* Mobile search row */}
       <div className="border-t border-zinc-100 px-4 py-2.5 md:hidden">
-        <form onSubmit={submitSearch} role="search">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-zinc-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for products"
-              className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-4 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20"
-            />
-          </div>
-        </form>
+        <SearchBar className="w-full" />
       </div>
     </header>
   );
