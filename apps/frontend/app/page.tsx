@@ -3,6 +3,9 @@ import { apiClient } from "@/lib/api";
 import type { Category, ProductsResponse } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
 
+// Render on demand — never block the build on API availability.
+export const dynamic = "force-dynamic";
+
 async function getCategories(): Promise<Category[]> {
   try {
     return await apiClient.get<Category[]>("/categories");

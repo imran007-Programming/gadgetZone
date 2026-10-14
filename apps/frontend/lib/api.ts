@@ -91,11 +91,18 @@ export async function api<T>(
       ...options,
       headers,
       credentials: "include",
+      // Fail fast (10s) so builds and pages never hang on a slow/dead API.
+      signal: AbortSignal.timeout(10000),
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
   };
 
-  let res = await doFetch(getAccessToken());
+  let res: Response;
+  try {
+    res = await doFetch(getAccessToken());
+  } catch {
+    throw new ApiError("API unreachable", 0);
+  }
 
   // Single 401 → refresh → retry. Never retry the auth endpoints themselves.
   if (res.status === 401 && retryOn401 && !path.startsWith("/auth/")) {
