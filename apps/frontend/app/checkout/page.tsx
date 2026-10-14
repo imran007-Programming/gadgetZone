@@ -1,19 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useCartStore, selectItemCount, selectSubtotal } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/utils";
 import type { Order, ShippingAddress } from "@/lib/types";
-import { CheckCircle2, Lock, LogIn, UserPlus } from "lucide-react";
+import { Banknote, CheckCircle2 } from "lucide-react";
 import {
   BackLink,
   EmptyState,
@@ -23,93 +21,39 @@ import {
 } from "@/components/ui";
 
 /**
- * Checkout flow (matches the backend contract):
- *  1. Shipping form (Zod) → POST /orders { shippingAddress } → order (PENDING)
- *  2. Payment step → POST /orders/:id/pay (mock payment) → order (PAID)
- *  3. Success screen with link to the order.
- *
- * Guests can fill their cart, but placing the order requires an account —
- * they see a friendly login/register prompt instead of the form.
+ * Checkout: guest-friendly, COD only.
+ * - No login required. Guests fill name / mobile / address / email (optional).
+ * - Logged-in users: order is created from their server cart via POST /orders.
+ * - Guests: order is created via POST /orders/guest with cart items.
+ * - Payment method is Cash on Delivery — no online payment step.
  */
-const addressSchema = z.object({
+const guestSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  street: z.string().min(3, "Street address is required"),
-  city: z.string().min(2, "City is required"),
-  postalCode: z.string().min(2, "Postal code is required"),
-  country: z.string().min(2, "Country is required"),
+  phone: z
+    .string()
+    .min(6, "Enter a valid mobile number")
+    .regex(/^[0-9+\-\s]+$/, "Enter a valid mobile number"),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  address: z.string().min(5, "Full address is required"),
 });
 
-type AddressForm = z.infer<typeof addressSchema>;
+type GuestForm = z.infer<typeof guestSchema>;
 
 export default function CheckoutPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const hydrated = useCartStore((s) => s.hydrated);
 
   if (isLoading || !hydrated) return <Spinner label="Loading checkout…" />;
-  if (!isAuthenticated) return <GuestPrompt />;
   return <CheckoutContent />;
-}
-
-function GuestPrompt() {
-  const items = useCartStore((s) => s.items);
-  const subtotal = useCartStore(selectSubtotal);
-  const itemCount = useCartStore(selectItemCount);
-
-  return (
-    <div className="mx-auto max-w-lg space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
-        Checkout
-      </h1>
-      <div className="rounded-2xl bg-zinc-50 p-8 text-center ring-1 ring-zinc-200">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-          <Lock className="h-6 w-6 text-blue-600" />
-        </span>
-        <h2 className="mt-4 text-lg font-bold text-zinc-900">
-          One quick step before you order
-        </h2>
-        <p className="mt-2 text-sm text-zinc-500">
-          {itemCount > 0 ? (
-            <>
-              Your cart with {itemCount} item{itemCount === 1 ? "" : "s"} (
-              {formatPrice(subtotal)}) is saved. Log in or create a free account
-              to place your order — it takes less than a minute.
-            </>
-          ) : (
-            "Log in or create a free account to place your order."
-          )}
-        </p>
-        <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
-          <Link
-            href="/login?next=/checkout"
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-600"
-          >
-            <LogIn className="h-4 w-4" />
-            Log in
-          </Link>
-          <Link
-            href="/register?next=/checkout"
-            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-300 hover:bg-zinc-100"
-          >
-            <UserPlus className="h-4 w-4" />
-            Create account
-          </Link>
-        </div>
-        {items.length === 0 && (
-          <div className="mt-6">
-            <BackLink href="/products" label="Back to products" />
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function CheckoutContent() {
   const toast = useToast();
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
-  const [paidOrder, setPaidOrder] = useState<Order | null>(null);
+  const { isAuthenticated, user } = useAuth();
+  const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const items = useCartStore((s) => s.items);
   const itemCount = useCartStore(selectItemCount);
@@ -120,54 +64,39 @@ function CheckoutContent() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<AddressForm>({ resolver: zodResolver(addressSchema) });
-
-  const createOrder = useMutation({
-    mutationFn: (shippingAddress: ShippingAddress) =>
-      apiClient.post<Order>("/orders", { shippingAddress }),
-    onSuccess: (order) => {
-      setCreatedOrder(order);
-      clearCart();
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Order created — complete the payment");
-      window.scrollTo({ top: 0 });
-    },
-    onError: (e: Error) => toast.error(e.message),
+  } = useForm<GuestForm>({
+    resolver: zodResolver(guestSchema),
+    defaultValues: { name: user?.name ?? "", email: "" },
   });
 
-  const payOrder = useMutation({
-    mutationFn: (orderId: string) => apiClient.post<Order>(`/orders/${orderId}/pay`),
-    onSuccess: (order) => {
-      setPaidOrder(order);
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Payment successful");
-      window.scrollTo({ top: 0 });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  // ---- Step 3: success -------------------------------------------------
-  if (paidOrder) {
+  // ---- Success screen --------------------------------------------------
+  if (placedOrder) {
     return (
-      <div className="mx-auto max-w-lg rounded-2xl bg-zinc-50 p-8 text-center ring-1 ring-zinc-200">
+      <div className="mx-auto max-w-lg rounded-2xl bg-white p-8 text-center ring-1 ring-zinc-200">
         <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
-          <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+          <CheckCircle2 className="h-7 w-7 text-emerald-600" />
         </span>
-        <h1 className="mt-4 text-2xl font-bold text-zinc-900">Payment successful!</h1>
+        <h1 className="mt-4 text-2xl font-bold text-zinc-900">Order placed!</h1>
         <p className="mt-2 text-sm text-zinc-500">
-          Order <span className="font-mono font-semibold">{paidOrder.id.slice(0, 8)}</span>{" "}
-          is confirmed. Total {formatPrice(paidOrder.totalAmount)}.
+          Order{" "}
+          <span className="font-mono font-semibold text-zinc-700">
+            #{placedOrder.id.slice(0, 8).toUpperCase()}
+          </span>{" "}
+          is confirmed. Pay {formatPrice(placedOrder.totalAmount)} in cash on
+          delivery.
         </p>
         <div className="mt-6 flex justify-center gap-3">
-          <button
-            onClick={() => router.push(`/orders/${paidOrder.id}`)}
-            className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
-          >
-            View order
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={() => router.push(`/dashboard/orders`)}
+              className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              View my orders
+            </button>
+          ) : null}
           <button
             onClick={() => router.push("/products")}
-            className="rounded-xl px-5 py-2.5 text-sm font-semibold text-zinc-500 ring-1 ring-zinc-300 hover:bg-white"
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold text-zinc-600 ring-1 ring-zinc-300 hover:bg-zinc-50"
           >
             Continue shopping
           </button>
@@ -176,43 +105,7 @@ function CheckoutContent() {
     );
   }
 
-  // ---- Step 2: payment -------------------------------------------------
-  if (createdOrder) {
-    return (
-      <div className="mx-auto max-w-lg space-y-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Payment</h1>
-        <div className="rounded-xl bg-zinc-50 p-6 ring-1 ring-zinc-200">
-          <p className="text-sm text-zinc-500">Order total</p>
-          <p className="text-3xl font-bold text-zinc-900">
-            {formatPrice(createdOrder.totalAmount)}
-          </p>
-          <div className="mt-4 rounded-lg bg-amber-50 p-4 text-sm text-amber-800 ring-1 ring-amber-200">
-            <p className="font-semibold">Mock payment</p>
-            <p className="mt-1">
-              This demo uses a mock payment provider — no real card is charged.
-              Clicking pay marks the order as PAID.
-            </p>
-          </div>
-          <button
-            onClick={() => payOrder.mutate(createdOrder.id)}
-            disabled={payOrder.isPending}
-            className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
-          >
-            {payOrder.isPending
-              ? "Processing…"
-              : `Pay ${formatPrice(createdOrder.totalAmount)}`}
-          </button>
-          {payOrder.isError && (
-            <p className="mt-2 text-sm text-rose-600">
-              {(payOrder.error as Error).message}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Step 1: shipping form -------------------------------------------
+  // ---- Empty cart ------------------------------------------------------
   if (items.length === 0) {
     return (
       <EmptyState
@@ -223,65 +116,163 @@ function CheckoutContent() {
     );
   }
 
-  const onSubmit = (values: AddressForm) => {
-    createOrder.mutate(values);
+  const onSubmit = async (values: GuestForm) => {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      let order: Order;
+      if (isAuthenticated) {
+        // Logged-in: backend reads the server cart.
+        const shippingAddress: ShippingAddress = {
+          name: values.name,
+          street: values.address,
+          city: "",
+          postalCode: "",
+          country: "Bangladesh",
+        };
+        order = await apiClient.post<Order>("/orders", { shippingAddress });
+      } else {
+        // Guest: send cart items + contact info.
+        order = await apiClient.post<Order>("/orders/guest", {
+          name: values.name,
+          phone: values.phone,
+          email: values.email || undefined,
+          address: values.address,
+          items: items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+        });
+      }
+      clearCart();
+      setPlacedOrder(order);
+      toast.success("Order placed successfully");
+      window.scrollTo({ top: 0 });
+    } catch (e) {
+      setSubmitError(e instanceof ApiError ? e.message : "Failed to place order");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Checkout</h1>
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
+        Checkout
+      </h1>
 
-      <div className="rounded-xl bg-zinc-50 p-6 ring-1 ring-zinc-200">
-        <h2 className="mb-4 text-base font-bold text-zinc-900">Shipping address</h2>
+      {/* Order summary */}
+      <div className="rounded-2xl bg-white p-5 ring-1 ring-zinc-200">
+        <h2 className="text-sm font-bold text-zinc-900">
+          {itemCount} item{itemCount === 1 ? "" : "s"} · {formatPrice(subtotal)}
+        </h2>
+        <ul className="mt-3 space-y-2">
+          {items.slice(0, 4).map((i) => (
+            <li key={i.productId} className="flex justify-between text-sm">
+              <span className="truncate text-zinc-600">
+                {i.name} × {i.quantity}
+              </span>
+              <span className="ml-3 font-medium text-zinc-900">
+                {formatPrice(i.price * i.quantity)}
+              </span>
+            </li>
+          ))}
+          {items.length > 4 && (
+            <li className="text-sm text-zinc-400">
+              + {items.length - 4} more item{items.length - 4 === 1 ? "" : "s"}
+            </li>
+          )}
+        </ul>
+      </div>
+
+      {/* Details form */}
+      <div className="rounded-2xl bg-white p-6 ring-1 ring-zinc-200">
+        <h2 className="mb-4 text-base font-bold text-zinc-900">
+          Delivery details
+        </h2>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <Field label="Full name" error={errors.name?.message} htmlFor="name">
-            <input id="name" className={inputClass} autoComplete="name" {...register("name")} />
-          </Field>
-          <Field label="Street address" error={errors.street?.message} htmlFor="street">
             <input
-              id="street"
+              id="name"
               className={inputClass}
-              autoComplete="street-address"
-              placeholder="House, road, area"
-              {...register("street")}
+              autoComplete="name"
+              placeholder="Your name"
+              {...register("name")}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="City" error={errors.city?.message} htmlFor="city">
-              <input id="city" className={inputClass} autoComplete="address-level2" {...register("city")} />
-            </Field>
-            <Field label="Postal code" error={errors.postalCode?.message} htmlFor="postalCode">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Mobile number" error={errors.phone?.message} htmlFor="phone">
               <input
-                id="postalCode"
+                id="phone"
                 className={inputClass}
-                autoComplete="postal-code"
-                {...register("postalCode")}
+                autoComplete="tel"
+                placeholder="01XXXXXXXXX"
+                inputMode="tel"
+                {...register("phone")}
+              />
+            </Field>
+            <Field
+              label="Email (optional)"
+              error={errors.email?.message}
+              htmlFor="email"
+            >
+              <input
+                id="email"
+                className={inputClass}
+                autoComplete="email"
+                placeholder="you@example.com"
+                inputMode="email"
+                {...register("email")}
               />
             </Field>
           </div>
-          <Field label="Country" error={errors.country?.message} htmlFor="country">
-            <input id="country" className={inputClass} autoComplete="country-name" {...register("country")} />
+          <Field label="Full address" error={errors.address?.message} htmlFor="address">
+            <textarea
+              id="address"
+              className={`${inputClass} min-h-20 resize-y`}
+              autoComplete="street-address"
+              placeholder="House, road, area, city"
+              {...register("address")}
+            />
           </Field>
 
-          {createOrder.isError && (
-            <p className="text-sm text-rose-600">
-              {(createOrder.error as ApiError).message}
+          {/* Payment method: COD only */}
+          <div>
+            <p className="mb-2 text-sm font-medium text-zinc-700">
+              Payment method
             </p>
+            <div className="flex items-center gap-3 rounded-xl border-2 border-blue-600 bg-blue-50 px-4 py-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+                <Banknote className="h-5 w-5 text-white" />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-zinc-900">
+                  Cash on Delivery
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Pay in cash when your order arrives
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {submitError && (
+            <p className="text-sm text-rose-600">{submitError}</p>
           )}
 
           <div className="flex items-center justify-between border-t border-zinc-200 pt-4">
             <div>
-              <p className="text-sm text-zinc-500">
-                {itemCount} item{itemCount === 1 ? "" : "s"}
+              <p className="text-sm text-zinc-500">Total (COD)</p>
+              <p className="text-xl font-bold text-zinc-900">
+                {formatPrice(subtotal)}
               </p>
-              <p className="text-lg font-bold text-zinc-900">{formatPrice(subtotal)}</p>
             </div>
             <button
               type="submit"
-              disabled={createOrder.isPending}
-              className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
+              disabled={submitting}
+              className="rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
             >
-              {createOrder.isPending ? "Placing order…" : "Place order"}
+              {submitting ? "Placing order…" : "Place order"}
             </button>
           </div>
         </form>

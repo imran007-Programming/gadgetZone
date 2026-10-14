@@ -105,6 +105,10 @@ export interface Order {
   status: OrderStatus;
   totalAmount: number;
   shippingAddress: ShippingAddress;
+  paymentMethod?: string;
+  guestName?: string | null;
+  guestPhone?: string | null;
+  guestEmail?: string | null;
   createdAt: string;
   items: OrderItem[];
 }

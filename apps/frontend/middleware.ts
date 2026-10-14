@@ -12,7 +12,7 @@ import type { NextRequest } from "next/server";
  * It does NOT verify the token — the API is the real enforcer and every
  * protected page also guards client-side via useRequireAuth().
  */
-const PROTECTED_PREFIXES = ["/cart", "/checkout", "/orders", "/account", "/admin"];
+const PROTECTED_PREFIXES = ["/cart", "/orders", "/account", "/admin", "/wishlist"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -32,5 +32,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/cart/:path*", "/checkout/:path*", "/orders/:path*", "/account/:path*", "/admin/:path*"],
+  matcher: ["/cart/:path*", "/orders/:path*", "/account/:path*", "/admin/:path*", "/wishlist"],
 };

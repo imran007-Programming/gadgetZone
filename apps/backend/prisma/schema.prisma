@@ -86,11 +86,16 @@ model CartItem {
 
 model Order {
   id              String      @id @default(cuid())
-  userId          String
-  user            User        @relation(fields: [userId], references: [id])
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
   status          OrderStatus @default(PENDING)
   totalAmount     Decimal     @db.Decimal(10, 2)
   shippingAddress Json
+  // Guest checkout fields (null for logged-in users)
+  guestName       String?
+  guestPhone      String?
+  guestEmail      String?
+  paymentMethod   String      @default("cod")
   createdAt       DateTime    @default(now())
   items           OrderItem[]
 

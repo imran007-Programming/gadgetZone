@@ -6,6 +6,7 @@ import {
 import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
+import { CreateGuestOrderDto } from './dto/create-guest-order.dto.js';
 import { PaymentService } from './payment/payment.service.js';
 
 const ORDER_INCLUDE = {
@@ -106,6 +107,83 @@ export class OrdersService {
       }
 
       await tx.cartItem.deleteMany({ where: { userId } });
+      return created;
+    });
+
+    return this.toOrderDto(order);
+  }
+
+  /**
+   * Guest checkout: no login required. Items come from the client cart,
+   * validated against live product data inside a transaction.
+   */
+  async createGuest(dto: CreateGuestOrderDto) {
+    const order = await this.prisma.$transaction(async (tx) => {
+      if (!dto.items || dto.items.length === 0) {
+        throw new BadRequestException('Cart is empty');
+      }
+
+      let total = new Prisma.Decimal(0);
+      const lines: { productId: string; quantity: number; unitPrice: Prisma.Decimal }[] = [];
+
+      for (const item of dto.items) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+        });
+        if (!product || !product.isActive) {
+          throw new BadRequestException(
+            `Product "${item.productId}" is no longer available`
+          );
+        }
+        if (item.quantity > product.stock) {
+          throw new BadRequestException(
+            `Insufficient stock for "${product.name}" (available: ${product.stock}, requested: ${item.quantity})`
+          );
+        }
+        total = total.plus(product.price.mul(item.quantity));
+        lines.push({
+          productId: product.id,
+          quantity: item.quantity,
+          unitPrice: product.price,
+        });
+      }
+
+      const created = await tx.order.create({
+        data: {
+          userId: null,
+          status: OrderStatus.PENDING,
+          totalAmount: total,
+          paymentMethod: 'cod',
+          guestName: dto.name,
+          guestPhone: dto.phone,
+          guestEmail: dto.email ?? null,
+          shippingAddress: {
+            name: dto.name,
+            street: dto.address,
+            city: '',
+            postalCode: '',
+            country: 'Bangladesh',
+            phone: dto.phone,
+            email: dto.email ?? null,
+          } as unknown as Prisma.InputJsonValue,
+          items: {
+            create: lines.map((l) => ({
+              productId: l.productId,
+              quantity: l.quantity,
+              unitPrice: l.unitPrice,
+            })),
+          },
+        },
+        include: ORDER_INCLUDE,
+      });
+
+      for (const line of lines) {
+        await tx.product.update({
+          where: { id: line.productId },
+          data: { stock: { decrement: line.quantity } },
+        });
+      }
+
       return created;
     });
 
