@@ -51,19 +51,24 @@ export default function WishlistButton({
     e.stopPropagation();
     toggle(normalized).then(() => {
       if (!active) {
-        // Celebration when adding to wishlist
+        // Celebration burst when adding to wishlist
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const x = (rect.left + rect.width / 2) / window.innerWidth;
+        const y = (rect.top + rect.height / 2) / window.innerHeight;
+        const colors = ["#2563eb", "#60a5fa", "#f472b6", "#fbbf24", "#34d399"];
         confetti({
-          particleCount: 60,
-          spread: 70,
-          startVelocity: 35,
-          origin: {
-            x: (rect.left + rect.width / 2) / window.innerWidth,
-            y: (rect.top + rect.height / 2) / window.innerHeight,
-          },
-          colors: ["#2563eb", "#60a5fa", "#f472b6", "#fbbf24"],
+          particleCount: 80,
+          spread: 100,
+          startVelocity: 40,
+          origin: { x, y },
+          colors,
           disableForReducedMotion: true,
         });
+        // Side cannons for extra celebration
+        setTimeout(() => {
+          confetti({ particleCount: 40, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors, disableForReducedMotion: true });
+          confetti({ particleCount: 40, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors, disableForReducedMotion: true });
+        }, 150);
       }
       toast.success(active ? "Removed from wishlist" : "Added to wishlist");
     });

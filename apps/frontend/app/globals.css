@@ -89,3 +89,12 @@ body {
   background-image: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
   background-size: 22px 22px;
 }
+
+/* Prevent iOS auto-zoom on input focus: inputs must be >= 16px on mobile */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
