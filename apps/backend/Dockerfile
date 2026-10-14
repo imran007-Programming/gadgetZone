@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm ci && npx prisma generate
+RUN npm install --legacy-peer-deps && npx prisma generate
 COPY . .
 RUN npm run build
 
