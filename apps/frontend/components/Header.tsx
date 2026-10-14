@@ -2,28 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { Heart, LayoutDashboard, LogOut, ShoppingCart, User } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/lib/toast";
-import { useCartDrawer } from "@/lib/cart-drawer";
-import { useWishlist } from "@/lib/wishlist";
-import { apiClient } from "@/lib/api";
-import type { Cart } from "@/lib/types";
+import { useCartStore, selectItemCount } from "@/lib/store/cart";
+import { useWishlistStore, selectWishlistCount } from "@/lib/store/wishlist";
 
 export default function Header() {
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
   const toast = useToast();
   const router = useRouter();
   const pathname = usePathname();
-  const { open: openCartDrawer } = useCartDrawer();
-  const { count: wishlistCount } = useWishlist();
-
-  const { data: cart } = useQuery({
-    queryKey: ["cart", "count"],
-    queryFn: () => apiClient.get<Cart>("/cart"),
-    enabled: isAuthenticated && !isAdmin,
-    staleTime: 30_000,
-  });
+  const openCartDrawer = useCartStore((s) => s.openDrawer);
+  const cartCount = useCartStore(selectItemCount);
+  const wishlistCount = useWishlistStore(selectWishlistCount);
 
   const handleLogout = async () => {
     await logout();
@@ -33,10 +25,12 @@ export default function Header() {
 
   const linkCls = (href: string) =>
     `rounded-full px-3.5 py-2 text-sm font-medium transition ${
-      pathname === href
+      pathname === href || pathname.startsWith(href + "/")
         ? "bg-lime-400/15 text-lime-300"
         : "text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-100"
     }`;
+
+  const dashboardHref = isAdmin ? "/admin" : "/dashboard";
 
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl">
@@ -54,34 +48,22 @@ export default function Header() {
           <Link href="/" className={linkCls("/")}>Home</Link>
           <Link href="/products" className={linkCls("/products")}>Products</Link>
           {isAuthenticated && !isAdmin && (
-            <Link href="/orders" className={linkCls("/orders")}>Orders</Link>
+            <Link href="/dashboard/orders" className={linkCls("/dashboard/orders")}>Orders</Link>
           )}
-          {isAdmin && (
-            <Link href="/admin" className={linkCls("/admin")}>Admin</Link>
+          {isAuthenticated && (
+            <Link href={dashboardHref} className={linkCls(dashboardHref)}>Dashboard</Link>
           )}
         </nav>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {isAuthenticated && !isAdmin && (
+          {!isAdmin && (
             <>
               <Link
-                href="/wishlist"
-                className="relative rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
+                href={isAuthenticated ? "/dashboard/wishlist" : "/wishlist"}
+                className="relative rounded-full p-2.5 text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
                 aria-label="Wishlist"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  className="h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                  />
-                </svg>
+                <Heart className="h-5 w-5" />
                 {wishlistCount > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-400 px-1 text-[11px] font-bold text-zinc-950">
                     {wishlistCount}
@@ -90,13 +72,13 @@ export default function Header() {
               </Link>
               <button
                 onClick={openCartDrawer}
-                className="relative rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
+                className="relative rounded-full p-2.5 text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
                 aria-label="Open cart"
               >
-                <span className="text-base">🛒</span>
-                {(cart?.itemCount ?? 0) > 0 && (
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-lime-400 px-1 text-[11px] font-bold text-zinc-950">
-                    {cart!.itemCount}
+                    {cartCount}
                   </span>
                 )}
               </button>
@@ -105,16 +87,22 @@ export default function Header() {
           {isAuthenticated ? (
             <div className="flex items-center gap-1">
               <Link
-                href="/account"
-                className="hidden rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100 sm:block"
+                href={dashboardHref}
+                className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100 sm:flex"
               >
-                {user?.name?.split(" ")[0] ?? "Account"}
+                {isAdmin ? (
+                  <LayoutDashboard className="h-4 w-4" />
+                ) : (
+                  <User className="h-4 w-4" />
+                )}
+                {user?.name?.split(" ")[0] ?? "Dashboard"}
               </Link>
               <button
                 onClick={handleLogout}
-                className="rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
+                className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-zinc-400 transition hover:bg-zinc-800/70 hover:text-zinc-100"
               >
-                Logout
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           ) : (
@@ -141,16 +129,13 @@ export default function Header() {
         <Link href="/" className={linkCls("/")}>Home</Link>
         <Link href="/products" className={linkCls("/products")}>Products</Link>
         {isAuthenticated && !isAdmin && (
-          <Link href="/wishlist" className={linkCls("/wishlist")}>Wishlist</Link>
+          <Link href="/dashboard/wishlist" className={linkCls("/dashboard/wishlist")}>Wishlist</Link>
         )}
         {isAuthenticated && !isAdmin && (
-          <Link href="/orders" className={linkCls("/orders")}>Orders</Link>
+          <Link href="/dashboard/orders" className={linkCls("/dashboard/orders")}>Orders</Link>
         )}
         {isAuthenticated && (
-          <Link href="/account" className={linkCls("/account")}>Account</Link>
-        )}
-        {isAdmin && (
-          <Link href="/admin" className={linkCls("/admin")}>Admin</Link>
+          <Link href={dashboardHref} className={linkCls(dashboardHref)}>Dashboard</Link>
         )}
       </nav>
     </header>

@@ -1,20 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { useCartStore, selectItemCount, selectSubtotal } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/utils";
-import type { Cart, Order, ShippingAddress } from "@/lib/types";
+import type { Order, ShippingAddress } from "@/lib/types";
+import { CheckCircle2, Lock, LogIn, UserPlus } from "lucide-react";
 import {
   BackLink,
   EmptyState,
   Field,
-  RequireAuth,
   Spinner,
   inputClass,
 } from "@/components/ui";
@@ -25,8 +28,8 @@ import {
  *  2. Payment step → POST /orders/:id/pay (mock payment) → order (PAID)
  *  3. Success screen with link to the order.
  *
- * NOTE: the backend ShippingAddressDto is { name, street, city, postalCode,
- * country } — there is no phone/address-line-2 field.
+ * Guests can fill their cart, but placing the order requires an account —
+ * they see a friendly login/register prompt instead of the form.
  */
 const addressSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -39,10 +42,65 @@ const addressSchema = z.object({
 type AddressForm = z.infer<typeof addressSchema>;
 
 export default function CheckoutPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const hydrated = useCartStore((s) => s.hydrated);
+
+  if (isLoading || !hydrated) return <Spinner label="Loading checkout…" />;
+  if (!isAuthenticated) return <GuestPrompt />;
+  return <CheckoutContent />;
+}
+
+function GuestPrompt() {
+  const items = useCartStore((s) => s.items);
+  const subtotal = useCartStore(selectSubtotal);
+  const itemCount = useCartStore(selectItemCount);
+
   return (
-    <RequireAuth>
-      <CheckoutContent />
-    </RequireAuth>
+    <div className="mx-auto max-w-lg space-y-6">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
+        Checkout
+      </h1>
+      <div className="rounded-2xl bg-zinc-900 p-8 text-center ring-1 ring-zinc-800">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-lime-400/15">
+          <Lock className="h-6 w-6 text-lime-400" />
+        </span>
+        <h2 className="mt-4 text-lg font-bold text-zinc-50">
+          One quick step before you order
+        </h2>
+        <p className="mt-2 text-sm text-zinc-400">
+          {itemCount > 0 ? (
+            <>
+              Your cart with {itemCount} item{itemCount === 1 ? "" : "s"} (
+              {formatPrice(subtotal)}) is saved. Log in or create a free account
+              to place your order — it takes less than a minute.
+            </>
+          ) : (
+            "Log in or create a free account to place your order."
+          )}
+        </p>
+        <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
+          <Link
+            href="/login?next=/checkout"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-lime-400 px-6 py-3 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
+          >
+            <LogIn className="h-4 w-4" />
+            Log in
+          </Link>
+          <Link
+            href="/register?next=/checkout"
+            className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-zinc-200 ring-1 ring-zinc-700 hover:bg-zinc-800"
+          >
+            <UserPlus className="h-4 w-4" />
+            Create account
+          </Link>
+        </div>
+        {items.length === 0 && (
+          <div className="mt-6">
+            <BackLink href="/products" label="Back to products" />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -53,10 +111,10 @@ function CheckoutContent() {
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [paidOrder, setPaidOrder] = useState<Order | null>(null);
 
-  const cartQuery = useQuery({
-    queryKey: ["cart"],
-    queryFn: () => apiClient.get<Cart>("/cart"),
-  });
+  const items = useCartStore((s) => s.items);
+  const itemCount = useCartStore(selectItemCount);
+  const subtotal = useCartStore(selectSubtotal);
+  const clearCart = useCartStore((s) => s.clear);
 
   const {
     register,
@@ -69,7 +127,7 @@ function CheckoutContent() {
       apiClient.post<Order>("/orders", { shippingAddress }),
     onSuccess: (order) => {
       setCreatedOrder(order);
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      clearCart();
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Order created — complete the payment");
       window.scrollTo({ top: 0 });
@@ -88,23 +146,13 @@ function CheckoutContent() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (cartQuery.isPending) return <Spinner label="Loading checkout…" />;
-  if (cartQuery.isError) {
-    const err = cartQuery.error;
-    return (
-      <div className="rounded-xl border border-rose-400/30 bg-rose-400/10 p-6 text-sm text-rose-300">
-        Failed to load cart: {err instanceof Error ? err.message : "unknown error"}
-      </div>
-    );
-  }
-
   // ---- Step 3: success -------------------------------------------------
   if (paidOrder) {
     return (
       <div className="mx-auto max-w-lg rounded-2xl bg-zinc-900 p-8 text-center ring-1 ring-zinc-800">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/15 text-2xl">
-          ✓
-        </div>
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-400/15">
+          <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+        </span>
         <h1 className="mt-4 text-2xl font-bold text-zinc-50">Payment successful!</h1>
         <p className="mt-2 text-sm text-zinc-400">
           Order <span className="font-mono font-semibold">{paidOrder.id.slice(0, 8)}</span>{" "}
@@ -165,8 +213,7 @@ function CheckoutContent() {
   }
 
   // ---- Step 1: shipping form -------------------------------------------
-  const cart = cartQuery.data;
-  if (cart.items.length === 0) {
+  if (items.length === 0) {
     return (
       <EmptyState
         title="Your cart is empty"
@@ -225,9 +272,9 @@ function CheckoutContent() {
           <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
             <div>
               <p className="text-sm text-zinc-500">
-                {cart.itemCount} item{cart.itemCount === 1 ? "" : "s"}
+                {itemCount} item{itemCount === 1 ? "" : "s"}
               </p>
-              <p className="text-lg font-bold text-zinc-50">{formatPrice(cart.subtotal)}</p>
+              <p className="text-lg font-bold text-zinc-50">{formatPrice(subtotal)}</p>
             </div>
             <button
               type="submit"

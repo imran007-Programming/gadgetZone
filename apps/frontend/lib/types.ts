@@ -63,6 +63,27 @@ export interface Cart {
   itemCount: number;
 }
 
+export interface WishlistItem {
+  productId: string;
+  createdAt: string;
+  product: Pick<
+    Product,
+    | "id"
+    | "name"
+    | "slug"
+    | "price"
+    | "comparePrice"
+    | "imageUrl"
+    | "stock"
+    | "isActive"
+  >;
+}
+
+export interface ToggleWishlistResult {
+  wishlisted: boolean;
+  productId: string;
+}
+
 export interface ShippingAddress {
   name: string;
   street: string;

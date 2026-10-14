@@ -4,46 +4,27 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api";
+import { Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
+import { useCartStore, selectItemCount, selectSubtotal } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
-import { useCartDrawer } from "@/lib/cart-drawer";
 import { formatPrice } from "@/lib/utils";
-import type { Cart } from "@/lib/types";
 import { Spinner } from "@/components/ui";
 
 /**
- * Slide-over cart drawer. Shares the ["cart"] query key with the /cart page
- * so both stay in sync. Opened from the Header cart icon.
+ * Slide-over cart drawer powered by the Zustand cart store.
+ * Works for guests (localStorage) and logged-in users (server-synced).
  */
 export default function CartDrawer() {
-  const { isOpen, close } = useCartDrawer();
+  const isOpen = useCartStore((s) => s.isOpen);
+  const close = useCartStore((s) => s.closeDrawer);
+  const items = useCartStore((s) => s.items);
+  const loading = useCartStore((s) => s.loading);
+  const setQty = useCartStore((s) => s.setQty);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const itemCount = useCartStore(selectItemCount);
+  const subtotal = useCartStore(selectSubtotal);
   const toast = useToast();
   const router = useRouter();
-  const queryClient = useQueryClient();
-
-  const cartQuery = useQuery({
-    queryKey: ["cart"],
-    queryFn: () => apiClient.get<Cart>("/cart"),
-  });
-
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["cart"] });
-
-  const updateQty = useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      apiClient.patch(`/cart/items/${productId}`, { quantity }),
-    onSuccess: invalidate,
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const removeItem = useMutation({
-    mutationFn: (productId: string) => apiClient.del(`/cart/items/${productId}`),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Removed from cart");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   // Lock body scroll + close on Escape while open.
   useEffect(() => {
@@ -61,11 +42,14 @@ export default function CartDrawer() {
 
   if (!isOpen) return null;
 
-  const cart = cartQuery.data;
-
   const go = (href: string) => {
     close();
     router.push(href);
+  };
+
+  const handleRemove = async (productId: string, name: string) => {
+    await removeItem(productId);
+    toast.success(`Removed "${name}" from cart`);
   };
 
   return (
@@ -75,13 +59,14 @@ export default function CartDrawer() {
         onClick={close}
         className="absolute inset-0 bg-zinc-950/70 backdrop-blur-sm"
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-zinc-950 ring-1 ring-zinc-800 shadow-2xl animate-slide-in-right">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-zinc-950 shadow-2xl ring-1 ring-zinc-800 animate-slide-in-right sm:max-w-md">
         <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
-          <h2 className="font-display text-lg font-bold text-zinc-50">
+          <h2 className="font-display flex items-center gap-2 text-lg font-bold text-zinc-50">
+            <ShoppingCart className="h-5 w-5 text-lime-400" />
             Your cart
-            {cart && cart.itemCount > 0 && (
-              <span className="ml-2 rounded-full bg-lime-400/15 px-2 py-0.5 text-xs font-bold text-lime-300">
-                {cart.itemCount}
+            {itemCount > 0 && (
+              <span className="rounded-full bg-lime-400/15 px-2 py-0.5 text-xs font-bold text-lime-300">
+                {itemCount}
               </span>
             )}
           </h2>
@@ -90,20 +75,17 @@ export default function CartDrawer() {
             aria-label="Close"
             className="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
           >
-            ✕
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {cartQuery.isPending && <Spinner label="Loading cart…" />}
-          {cartQuery.isError && (
-            <p className="text-sm text-rose-400">
-              Couldn&apos;t load your cart. {(cartQuery.error as Error).message}
-            </p>
-          )}
-          {cart && cart.items.length === 0 && (
+          {loading && <Spinner label="Loading cart…" />}
+          {!loading && items.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-              <p className="text-4xl">🛒</p>
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-zinc-800">
+                <ShoppingCart className="h-7 w-7 text-zinc-500" />
+              </span>
               <p className="font-semibold text-zinc-200">Your cart is empty</p>
               <p className="text-sm text-zinc-500">
                 Browse the catalog and add something you like.
@@ -116,21 +98,21 @@ export default function CartDrawer() {
               </button>
             </div>
           )}
-          {cart && cart.items.length > 0 && (
+          {!loading && items.length > 0 && (
             <ul className="space-y-3">
-              {cart.items.map((item) => (
+              {items.map((item) => (
                 <li
                   key={item.productId}
                   className="flex gap-3 rounded-xl bg-zinc-900 p-3 ring-1 ring-zinc-800"
                 >
                   <Link
-                    href={`/products/${item.product.slug}`}
+                    href={`/products/${item.slug}`}
                     onClick={close}
                     className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-800"
                   >
                     <Image
-                      src={item.product.imageUrl}
-                      alt={item.product.name}
+                      src={item.imageUrl}
+                      alt={item.name}
                       fill
                       sizes="64px"
                       className="object-cover"
@@ -139,54 +121,42 @@ export default function CartDrawer() {
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <Link
-                        href={`/products/${item.product.slug}`}
+                        href={`/products/${item.slug}`}
                         onClick={close}
                         className="truncate text-sm font-semibold text-zinc-50 hover:text-lime-300"
                       >
-                        {item.product.name}
+                        {item.name}
                       </Link>
                       <button
-                        onClick={() => removeItem.mutate(item.productId)}
-                        className="shrink-0 text-xs font-medium text-rose-400 hover:underline"
-                        aria-label={`Remove ${item.product.name}`}
+                        onClick={() => handleRemove(item.productId, item.name)}
+                        className="shrink-0 rounded p-1 text-zinc-500 transition hover:text-rose-400"
+                        aria-label={`Remove ${item.name}`}
                       >
-                        ✕
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="mt-auto flex items-center justify-between pt-2">
                       <div className="flex items-center rounded-lg ring-1 ring-zinc-700">
                         <button
                           aria-label="Decrease quantity"
-                          onClick={() =>
-                            item.quantity > 1
-                              ? updateQty.mutate({
-                                  productId: item.productId,
-                                  quantity: item.quantity - 1,
-                                })
-                              : removeItem.mutate(item.productId)
-                          }
-                          className="px-2 py-0.5 text-base font-bold text-zinc-400 hover:text-lime-400"
+                          onClick={() => setQty(item.productId, item.quantity - 1)}
+                          className="p-1.5 text-zinc-400 transition hover:text-lime-400"
                         >
-                          −
+                          <Minus className="h-4 w-4" />
                         </button>
                         <span className="w-7 text-center text-sm font-semibold text-zinc-100">
                           {item.quantity}
                         </span>
                         <button
                           aria-label="Increase quantity"
-                          onClick={() =>
-                            updateQty.mutate({
-                              productId: item.productId,
-                              quantity: item.quantity + 1,
-                            })
-                          }
-                          className="px-2 py-0.5 text-base font-bold text-zinc-400 hover:text-lime-400"
+                          onClick={() => setQty(item.productId, item.quantity + 1)}
+                          className="p-1.5 text-zinc-400 transition hover:text-lime-400"
                         >
-                          +
+                          <Plus className="h-4 w-4" />
                         </button>
                       </div>
                       <p className="text-sm font-bold text-zinc-50">
-                        {formatPrice(item.lineTotal)}
+                        {formatPrice(item.price * item.quantity)}
                       </p>
                     </div>
                   </div>
@@ -196,12 +166,12 @@ export default function CartDrawer() {
           )}
         </div>
 
-        {cart && cart.items.length > 0 && (
+        {items.length > 0 && (
           <div className="border-t border-zinc-800 px-5 py-4">
             <div className="flex justify-between text-sm">
               <span className="text-zinc-400">Subtotal</span>
               <span className="font-display text-lg font-bold text-zinc-50">
-                {formatPrice(cart.subtotal)}
+                {formatPrice(subtotal)}
               </span>
             </div>
             <button

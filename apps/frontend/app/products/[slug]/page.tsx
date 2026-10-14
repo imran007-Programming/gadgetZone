@@ -2,49 +2,42 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { Minus, Plus, ShoppingCart } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
+import { useCartStore } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { BackLink, EmptyState, ErrorState, Spinner } from "@/components/ui";
+import WishlistButton from "@/components/WishlistButton";
 
 export default function ProductDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
-  const { isAuthenticated } = useAuth();
   const toast = useToast();
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const addItem = useCartStore((s) => s.addItem);
+  const openDrawer = useCartStore((s) => s.openDrawer);
 
   const productQuery = useQuery({
     queryKey: ["product", slug],
     queryFn: () => apiClient.get<Product>(`/products/${encodeURIComponent(slug)}`),
   });
 
-  const addMutation = useMutation({
-    mutationFn: (quantity: number) =>
-      apiClient.post("/cart/items", {
-        productId: productQuery.data!.id,
-        quantity,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast.success("Added to cart");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const handleAdd = () => {
-    if (!isAuthenticated) {
-      toast.error("Please log in to add items to your cart");
-      router.push(`/login?next=/products/${encodeURIComponent(slug)}`);
-      return;
+  const handleAdd = async () => {
+    const p = productQuery.data;
+    if (!p) return;
+    setAdding(true);
+    try {
+      await addItem(p, qty);
+      toast.success(`Added ${qty} × "${p.name}" to cart`);
+      openDrawer();
+    } finally {
+      setAdding(false);
     }
-    addMutation.mutate(qty);
   };
 
   if (productQuery.isPending) return <Spinner label="Loading product…" />;
@@ -128,27 +121,29 @@ export default function ProductDetailPage() {
               <button
                 aria-label="Decrease quantity"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="px-3 py-2 text-lg font-bold text-zinc-400 hover:text-lime-400"
+                className="p-2.5 text-zinc-400 transition hover:text-lime-400"
               >
-                −
+                <Minus className="h-4 w-4" />
               </button>
               <span className="w-10 text-center text-sm font-semibold">{qty}</span>
               <button
                 aria-label="Increase quantity"
                 onClick={() => setQty((q) => Math.min(p.stock || 99, q + 1))}
                 disabled={outOfStock}
-                className="px-3 py-2 text-lg font-bold text-zinc-400 hover:text-lime-400 disabled:opacity-30"
+                className="p-2.5 text-zinc-400 transition hover:text-lime-400 disabled:opacity-30"
               >
-                +
+                <Plus className="h-4 w-4" />
               </button>
             </div>
             <button
               onClick={handleAdd}
-              disabled={outOfStock || addMutation.isPending}
-              className="flex-1 rounded-xl bg-lime-400 px-6 py-3 text-sm font-semibold text-zinc-950 shadow hover:bg-lime-300 disabled:opacity-40 sm:flex-none sm:px-10"
+              disabled={outOfStock || adding}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-lime-400 px-6 py-3 text-sm font-semibold text-zinc-950 shadow hover:bg-lime-300 disabled:opacity-40 sm:flex-none sm:px-10"
             >
-              {addMutation.isPending ? "Adding…" : "Add to cart"}
+              <ShoppingCart className="h-4 w-4" />
+              {adding ? "Adding…" : "Add to cart"}
             </button>
+            <WishlistButton product={p} />
           </div>
         </div>
       </div>

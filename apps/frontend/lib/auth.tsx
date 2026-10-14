@@ -17,6 +17,8 @@ import {
   getAccessToken,
 } from "./api";
 import type { User } from "./types";
+import { useCartStore } from "./store/cart";
+import { useWishlistStore } from "./store/wishlist";
 
 interface AuthContextValue {
   user: User | null;
@@ -62,6 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!sessionQuery.isPending) setBootstrapped(true);
   }, [sessionQuery.isPending]);
 
+  // When a session is restored (e.g. via refresh cookie on page load),
+  // pull the server cart/wishlist into the stores.
+  const sessionUser = sessionQuery.data ?? null;
+  useEffect(() => {
+    if (sessionUser) {
+      useCartStore.getState().syncFromServer();
+      useWishlistStore.getState().syncFromServer();
+    }
+  }, [sessionUser]);
+
   const login = useCallback(
     async (email: string, password: string) => {
       const data = await apiClient.post<{ accessToken: string }>("/auth/login", {
@@ -70,6 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setAccessToken(data.accessToken);
       await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+      // Merge guest cart/wishlist into the server, then load server state.
+      await Promise.all([
+        useCartStore.getState().onLogin(),
+        useWishlistStore.getState().onLogin(),
+      ]);
     },
     [queryClient]
   );
@@ -90,6 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* ignore — still clear local state */
     }
     setAccessToken(null);
+    // Drop server-linked cart/wishlist, start fresh local state.
+    useCartStore.getState().onLogout();
+    useWishlistStore.getState().onLogout();
     queryClient.setQueryData(SESSION_KEY, null);
     await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
   }, [queryClient]);

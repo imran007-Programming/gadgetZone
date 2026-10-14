@@ -27,7 +27,7 @@ export default function ProductCard({ product }: { product: Product }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/50 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
         <div className="absolute right-2.5 top-2.5">
-          <WishlistButton productId={product.id} productSlug={product.slug} />
+          <WishlistButton product={product} />
         </div>
         {hasDiscount && (
           <span className="absolute left-2.5 top-2.5 rounded-full bg-lime-400 px-2.5 py-1 text-[11px] font-bold text-zinc-950 shadow-lg">

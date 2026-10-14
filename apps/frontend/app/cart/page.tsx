@@ -3,76 +3,27 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiClient } from "@/lib/api";
+import { ArrowLeft, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { useCartStore, selectItemCount, selectSubtotal } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/utils";
-import type { Cart } from "@/lib/types";
-import {
-  BackLink,
-  EmptyState,
-  ErrorState,
-  RequireAuth,
-  Spinner,
-} from "@/components/ui";
+import { EmptyState, Spinner } from "@/components/ui";
 
 export default function CartPage() {
-  return (
-    <RequireAuth>
-      <CartContent />
-    </RequireAuth>
-  );
-}
-
-function CartContent() {
   const toast = useToast();
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const items = useCartStore((s) => s.items);
+  const loading = useCartStore((s) => s.loading);
+  const hydrated = useCartStore((s) => s.hydrated);
+  const setQty = useCartStore((s) => s.setQty);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clear = useCartStore((s) => s.clear);
+  const itemCount = useCartStore(selectItemCount);
+  const subtotal = useCartStore(selectSubtotal);
 
-  const cartQuery = useQuery({
-    queryKey: ["cart"],
-    queryFn: () => apiClient.get<Cart>("/cart"),
-  });
+  if (!hydrated || loading) return <Spinner label="Loading cart…" />;
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["cart"] });
-
-  const updateQty = useMutation({
-    mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
-      apiClient.patch(`/cart/items/${productId}`, { quantity }),
-    onSuccess: invalidate,
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const removeItem = useMutation({
-    mutationFn: (productId: string) => apiClient.del(`/cart/items/${productId}`),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Removed from cart");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const clearCart = useMutation({
-    mutationFn: () => apiClient.del("/cart"),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Cart cleared");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  if (cartQuery.isPending) return <Spinner label="Loading cart…" />;
-  if (cartQuery.isError)
-    return (
-      <ErrorState
-        message={(cartQuery.error as Error).message}
-        onRetry={() => cartQuery.refetch()}
-      />
-    );
-
-  const cart = cartQuery.data;
-
-  if (cart.items.length === 0) {
+  if (items.length === 0) {
     return (
       <EmptyState
         title="Your cart is empty"
@@ -80,8 +31,9 @@ function CartContent() {
         action={
           <Link
             href="/products"
-            className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-medium text-zinc-950 hover:bg-lime-300"
+            className="inline-flex items-center gap-2 rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-lime-300"
           >
+            <ShoppingCart className="h-4 w-4" />
             Shop products
           </Link>
         }
@@ -89,36 +41,47 @@ function CartContent() {
     );
   }
 
+  const handleRemove = async (productId: string, name: string) => {
+    await removeItem(productId);
+    toast.success(`Removed "${name}"`);
+  };
+
+  const handleClear = async () => {
+    if (window.confirm("Clear the whole cart?")) {
+      await clear();
+      toast.success("Cart cleared");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-50">
-          Cart ({cart.itemCount} item{cart.itemCount === 1 ? "" : "s"})
+          Cart ({itemCount} item{itemCount === 1 ? "" : "s"})
         </h1>
         <button
-          onClick={() => {
-            if (window.confirm("Clear the whole cart?")) clearCart.mutate();
-          }}
-          className="text-sm font-medium text-rose-400 hover:underline"
+          onClick={handleClear}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-rose-400 hover:underline"
         >
+          <Trash2 className="h-4 w-4" />
           Clear cart
         </button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <ul className="space-y-3 lg:col-span-2">
-          {cart.items.map((item) => (
+          {items.map((item) => (
             <li
               key={item.productId}
               className="flex gap-4 rounded-xl bg-zinc-900 p-3 ring-1 ring-zinc-800"
             >
               <Link
-                href={`/products/${item.product.slug}`}
+                href={`/products/${item.slug}`}
                 className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-800"
               >
                 <Image
-                  src={item.product.imageUrl}
-                  alt={item.product.name}
+                  src={item.imageUrl}
+                  alt={item.name}
                   fill
                   sizes="80px"
                   className="object-cover"
@@ -127,54 +90,42 @@ function CartContent() {
               <div className="flex min-w-0 flex-1 flex-col">
                 <div className="flex items-start justify-between gap-2">
                   <Link
-                    href={`/products/${item.product.slug}`}
+                    href={`/products/${item.slug}`}
                     className="truncate text-sm font-semibold text-zinc-50 hover:text-lime-300"
                   >
-                    {item.product.name}
+                    {item.name}
                   </Link>
                   <button
-                    onClick={() => removeItem.mutate(item.productId)}
-                    className="text-xs font-medium text-rose-400 hover:underline"
-                    aria-label={`Remove ${item.product.name}`}
+                    onClick={() => handleRemove(item.productId, item.name)}
+                    className="shrink-0 rounded p-1 text-zinc-500 transition hover:text-rose-400"
+                    aria-label={`Remove ${item.name}`}
                   >
-                    Remove
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="text-xs text-zinc-500">{formatPrice(item.product.price)} each</p>
+                <p className="text-xs text-zinc-500">{formatPrice(item.price)} each</p>
                 <div className="mt-auto flex items-center justify-between pt-2">
                   <div className="flex items-center rounded-lg ring-1 ring-zinc-700">
                     <button
                       aria-label="Decrease quantity"
-                      onClick={() =>
-                        item.quantity > 1
-                          ? updateQty.mutate({
-                              productId: item.productId,
-                              quantity: item.quantity - 1,
-                            })
-                          : removeItem.mutate(item.productId)
-                      }
-                      className="px-2.5 py-1 text-base font-bold text-zinc-400 hover:text-lime-400"
+                      onClick={() => setQty(item.productId, item.quantity - 1)}
+                      className="p-2 text-zinc-400 transition hover:text-lime-400"
                     >
-                      −
+                      <Minus className="h-4 w-4" />
                     </button>
-                    <span className="w-8 text-center text-sm font-semibold">
+                    <span className="w-8 text-center text-sm font-semibold text-zinc-100">
                       {item.quantity}
                     </span>
                     <button
                       aria-label="Increase quantity"
-                      onClick={() =>
-                        updateQty.mutate({
-                          productId: item.productId,
-                          quantity: item.quantity + 1,
-                        })
-                      }
-                      className="px-2.5 py-1 text-base font-bold text-zinc-400 hover:text-lime-400"
+                      onClick={() => setQty(item.productId, item.quantity + 1)}
+                      className="p-2 text-zinc-400 transition hover:text-lime-400"
                     >
-                      +
+                      <Plus className="h-4 w-4" />
                     </button>
                   </div>
                   <p className="text-sm font-bold text-zinc-50">
-                    {formatPrice(item.lineTotal)}
+                    {formatPrice(item.price * item.quantity)}
                   </p>
                 </div>
               </div>
@@ -186,7 +137,7 @@ function CartContent() {
           <h2 className="text-base font-bold text-zinc-50">Order summary</h2>
           <div className="mt-3 flex justify-between text-sm text-zinc-400">
             <span>Subtotal</span>
-            <span className="font-semibold text-zinc-50">{formatPrice(cart.subtotal)}</span>
+            <span className="font-semibold text-zinc-50">{formatPrice(subtotal)}</span>
           </div>
           <p className="mt-1 text-xs text-zinc-500">
             Shipping calculated at checkout.
@@ -197,9 +148,13 @@ function CartContent() {
           >
             Proceed to checkout
           </button>
-          <div className="mt-3">
-            <BackLink href="/products" label="Continue shopping" />
-          </div>
+          <Link
+            href="/products"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-lime-300"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Continue shopping
+          </Link>
         </aside>
       </div>
     </div>
