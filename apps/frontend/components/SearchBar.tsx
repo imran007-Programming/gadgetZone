@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Search, Loader2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
+import { formatPrice } from "@/lib/utils";
 import type { Product, ProductsResponse } from "@/lib/types";
 
 /**
@@ -118,7 +119,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
                       {p.name}
                     </span>
                     <span className="block text-sm font-semibold text-blue-600">
-                      ${Number(p.price).toFixed(2)}
+                      {formatPrice(p.price)}
                     </span>
                   </span>
                 </Link>

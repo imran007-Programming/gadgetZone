@@ -1,10 +1,11 @@
-/** Format a price as USD. Accepts numbers or numeric strings (Prisma Decimal). */
+/** Format a price as BDT (Taka). Accepts numbers or numeric strings (Prisma Decimal). */
 export function formatPrice(value: number | string | null | undefined): string {
   const n = typeof value === "string" ? parseFloat(value) : (value ?? 0);
-  if (!Number.isFinite(n)) return "$0.00";
+  if (!Number.isFinite(n)) return "৳0";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "BDT",
+    maximumFractionDigits: 0,
   }).format(n);
 }
 
