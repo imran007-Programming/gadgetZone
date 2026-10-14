@@ -40,11 +40,13 @@ export default function WishlistButton({
   className?: string;
 }) {
   const toggle = useWishlistStore((s) => s.toggle);
-  const isWishlisted = useWishlistStore((s) => s.isWishlisted);
   const toast = useToast();
 
   const normalized = normalize(product);
-  const active = isWishlisted(normalized.id);
+  // Subscribe to items directly so the component re-renders on change
+  const active = useWishlistStore((s) =>
+    s.items.some((i) => i.productId === normalized.id)
+  );
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
