@@ -17,6 +17,28 @@ const API_URL =
 
 let accessToken: string | null = null;
 
+/** Refresh token backup for browsers blocking cross-site cookies (e.g. Safari ITP). */
+const REFRESH_KEY = "gadgetlax-refresh";
+
+function getStoredRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(REFRESH_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredRefreshToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (token) localStorage.setItem(REFRESH_KEY, token);
+    else localStorage.removeItem(REFRESH_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function setAccessToken(token: string | null) {
   accessToken = token;
 }
@@ -52,20 +74,30 @@ async function parseJson(res: Response): Promise<unknown> {
   }
 }
 
-/** Call POST /auth/refresh using the httpOnly cookie. Returns the new access token or null. */
+/** Call POST /auth/refresh using the httpOnly cookie (or stored token fallback). Returns the new access token or null. */
 export async function refreshAccessToken(): Promise<string | null> {
   try {
+    const stored = getStoredRefreshToken();
     const res = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
       credentials: "include",
+      headers: stored ? { "Content-Type": "application/json" } : undefined,
+      body: stored ? JSON.stringify({ refreshToken: stored }) : undefined,
     });
     if (!res.ok) {
       setAccessToken(null);
+      setStoredRefreshToken(null);
       return null;
     }
-    const json = (await parseJson(res)) as Envelope<{ accessToken: string }>;
+    const json = (await parseJson(res)) as Envelope<{
+      accessToken: string;
+      refreshToken?: string;
+    }>;
     const token = json?.data?.accessToken;
     setAccessToken(typeof token === "string" ? token : null);
+    if (typeof json?.data?.refreshToken === "string") {
+      setStoredRefreshToken(json.data.refreshToken);
+    }
     return getAccessToken();
   } catch {
     setAccessToken(null);

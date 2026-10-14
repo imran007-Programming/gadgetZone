@@ -14,6 +14,7 @@ import {
   apiClient,
   refreshAccessToken,
   setAccessToken,
+  setStoredRefreshToken,
   getAccessToken,
 } from "./api";
 import type { User } from "./types";
@@ -76,11 +77,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const data = await apiClient.post<{ accessToken: string }>("/auth/login", {
+      const data = await apiClient.post<{
+        accessToken: string;
+        refreshToken?: string;
+      }>("/auth/login", {
         email,
         password,
       });
       setAccessToken(data.accessToken);
+      if (data.refreshToken) setStoredRefreshToken(data.refreshToken);
       await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
       // Merge guest cart/wishlist into the server, then load server state.
       await Promise.all([
@@ -107,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* ignore — still clear local state */
     }
     setAccessToken(null);
+    setStoredRefreshToken(null);
     // Drop server-linked cart/wishlist, start fresh local state.
     useCartStore.getState().onLogout();
     useWishlistStore.getState().onLogout();

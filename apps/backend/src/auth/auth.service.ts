@@ -83,7 +83,7 @@ export class AuthService {
   async login(
     dto: LoginDto,
     res: Response,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid email or password');
@@ -94,8 +94,8 @@ export class AuthService {
       throw new UnauthorizedException('Account disabled');
     }
     const accessToken = await this.signAccessToken(user);
-    await this.issueRefreshToken(user, res);
-    return { accessToken };
+    const refreshToken = await this.issueRefreshToken(user, res);
+    return { accessToken, refreshToken };
   }
 
   /**
@@ -106,10 +106,11 @@ export class AuthService {
   async refresh(
     req: Request,
     res: Response,
-  ): Promise<{ accessToken: string }> {
-    const presented = req.cookies?.[REFRESH_TOKEN_COOKIE] as
-      | string
-      | undefined;
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Accept from cookie (preferred) or request body (for browsers blocking cross-site cookies).
+    const presented =
+      (req.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined) ??
+      (req.body as { refreshToken?: string } | undefined)?.refreshToken;
     if (!presented) {
       throw new UnauthorizedException('Refresh token is missing');
     }
@@ -136,8 +137,8 @@ export class AuthService {
     }
 
     const accessToken = await this.signAccessToken(user);
-    await this.issueRefreshToken(user, res); // rotate
-    return { accessToken };
+    const refreshToken = await this.issueRefreshToken(user, res); // rotate
+    return { accessToken, refreshToken };
   }
 
   async logout(req: Request, res: Response): Promise<{ message: string }> {
@@ -183,8 +184,8 @@ export class AuthService {
     });
   }
 
-  /** Issues a new refresh token, stores its bcrypt hash, sets the cookie. */
-  private async issueRefreshToken(user: User, res: Response): Promise<void> {
+  /** Issues a new refresh token, stores its bcrypt hash, sets the cookie. Returns the raw token. */
+  private async issueRefreshToken(user: User, res: Response): Promise<string> {
     const payload: RefreshTokenPayload = { sub: user.id, jti: randomUUID() };
     const token = await this.jwtService.signAsync(payload, {
       secret: this.refreshSecret,
@@ -193,6 +194,7 @@ export class AuthService {
     const hash = await bcrypt.hash(tokenDigest(token), BCRYPT_ROUNDS);
     await this.usersService.updateRefreshTokenHash(user.id, hash);
     res.cookie(REFRESH_TOKEN_COOKIE, token, this.refreshCookieOptions());
+    return token;
   }
 
   private async verifyRefreshToken(
