@@ -44,14 +44,14 @@ export default function RegisterPage() {
   } = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) router.replace("/");
+    if (!isLoading && isAuthenticated) router.replace("/dashboard");
   }, [isLoading, isAuthenticated, router]);
 
   const onSubmit = async (values: RegisterForm) => {
     try {
       await doRegister(values.name, values.email, values.password);
       toast.success("Account created — welcome!");
-      router.push("/");
+      router.push("/dashboard");
     } catch (e) {
       const message = e instanceof Error ? e.message : "Registration failed";
       setError("root", { message });

@@ -41,10 +41,10 @@ function LoginContent() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
-  // Role-aware redirect: admins → /admin, customers → next or /
+  // Role-aware redirect: admins → /admin, customers → next or /dashboard
   const getRedirect = () => {
     if (isAdmin) return "/admin";
-    return next ?? "/";
+    return next ?? "/dashboard";
   };
 
   useEffect(() => {
@@ -59,9 +59,9 @@ function LoginContent() {
       // (The useEffect above is a fallback for session restores.)
       try {
         const me = await apiClient.get<{ role: string }>("/auth/me");
-        router.push(me.role === "ADMIN" ? "/admin" : (next ?? "/"));
+        router.push(me.role === "ADMIN" ? "/admin" : (next ?? "/dashboard"));
       } catch {
-        router.push(next ?? "/");
+        router.push(next ?? "/dashboard");
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : "Login failed";
