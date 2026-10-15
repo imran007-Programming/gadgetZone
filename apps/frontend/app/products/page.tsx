@@ -195,7 +195,7 @@ function ProductsContent() {
             {productsQuery.data.meta.total} product
             {productsQuery.data.meta.total === 1 ? "" : "s"} found
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
             {productsQuery.data.items.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
