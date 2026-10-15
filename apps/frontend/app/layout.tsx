@@ -3,7 +3,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import ConditionalFooter from "@/components/ConditionalFooter";
 import CartDrawer from "@/components/CartDrawer";
 import MobileNav from "@/components/MobileNav";
 
@@ -35,7 +35,7 @@ export default function RootLayout({
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6">
             {children}
           </main>
-          <Footer />
+          <ConditionalFooter />
           <CartDrawer />
           <MobileNav />
         </Providers>
