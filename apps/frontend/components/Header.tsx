@@ -211,7 +211,7 @@ export default function Header() {
       </div>
 
       {/* Category nav row */}
-      <nav className="hidden border-t border-zinc-100 md:block">
+      <nav className="border-t border-zinc-100">
         <div className="mx-auto flex max-w-[1450px] items-center gap-7 overflow-x-auto px-4 sm:px-6">
           <Link
             href="/products"
@@ -222,7 +222,7 @@ export default function Header() {
           {(categories ?? []).map((c) => (
             <div
               key={c.id}
-              className="relative shrink-0"
+              className="relative hidden shrink-0 md:block"
               onMouseEnter={() => setHoverCat(c.slug)}
               onMouseLeave={() => setHoverCat(null)}
             >
@@ -243,6 +243,16 @@ export default function Header() {
               </Link>
               {hoverCat === c.slug && <CategoryDropdown slug={c.slug} />}
             </div>
+          ))}
+          {/* Mobile: simple category links (no hover dropdown) */}
+          {(categories ?? []).map((c) => (
+            <Link
+              key={`m-${c.id}`}
+              href={`/products?category=${c.slug}`}
+              className="whitespace-nowrap py-3 text-sm font-medium text-zinc-700 md:hidden"
+            >
+              {c.name}
+            </Link>
           ))}
         </div>
       </nav>
