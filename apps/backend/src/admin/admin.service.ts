@@ -313,8 +313,15 @@ export class AdminService {
   async getStats() {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [revenueAgg, grouped, lowStock, newCustomers] =
-      await this.prisma.$transaction([
+    const [
+      revenueAgg,
+      grouped,
+      lowStock,
+      newCustomers,
+      totalProducts,
+      totalCustomers,
+      totalOrders,
+    ] = await this.prisma.$transaction([
         this.prisma.order.aggregate({
           where: {
             status: {
@@ -336,6 +343,9 @@ export class AdminService {
         this.prisma.user.count({
           where: { role: Role.CUSTOMER, createdAt: { gte: thirtyDaysAgo } },
         }),
+        this.prisma.product.count({ where: { isActive: true } }),
+        this.prisma.user.count({ where: { role: Role.CUSTOMER } }),
+        this.prisma.order.count(),
       ]);
 
     const ordersByStatus: Record<OrderStatus, number> = {
@@ -354,7 +364,92 @@ export class AdminService {
       ordersByStatus,
       lowStock,
       newCustomers30d: newCustomers,
+      totalProducts,
+      totalCustomers,
+      totalOrders,
     };
+  }
+
+  /** Monthly revenue + order count for the last 12 months (oldest → newest). */
+  async getRevenueTrend() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const orders = await this.prisma.order.findMany({
+      where: {
+        createdAt: { gte: start },
+        status: {
+          in: [OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.DELIVERED],
+        },
+      },
+      select: { createdAt: true, totalAmount: true },
+    });
+    const months: { label: string; revenue: number; orders: number }[] = [];
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+      months.push({
+        label: d.toLocaleString('en', { month: 'short' }),
+        revenue: 0,
+        orders: 0,
+      });
+    }
+    for (const o of orders) {
+      const idx =
+        (o.createdAt.getFullYear() - start.getFullYear()) * 12 +
+        (o.createdAt.getMonth() - start.getMonth());
+      if (idx >= 0 && idx < 12) {
+        months[idx].revenue += o.totalAmount.toNumber();
+        months[idx].orders += 1;
+      }
+    }
+    return months.map((m) => ({
+      label: m.label,
+      revenue: Math.round(m.revenue * 100) / 100,
+      orders: m.orders,
+    }));
+  }
+
+  /** Top 5 products by units sold (paid/shipped/delivered orders only). */
+  async getTopProducts() {
+    const items = await this.prisma.orderItem.findMany({
+      where: {
+        order: {
+          status: {
+            in: [OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.DELIVERED],
+          },
+        },
+      },
+      select: {
+        productId: true,
+        quantity: true,
+        unitPrice: true,
+        product: { select: { name: true, imageUrl: true } },
+      },
+    });
+    const agg = new Map<
+      string,
+      { name: string; imageUrl: string | null; units: number; revenue: number }
+    >();
+    for (const i of items) {
+      const cur = agg.get(i.productId) ?? {
+        name: i.product.name,
+        imageUrl: i.product.imageUrl,
+        units: 0,
+        revenue: 0,
+      };
+      cur.units += i.quantity;
+      cur.revenue += i.quantity * i.unitPrice.toNumber();
+      agg.set(i.productId, cur);
+    }
+    return [...agg.entries()]
+      .map(([productId, v]) => ({
+        productId,
+        name: v.name,
+        imageUrl: v.imageUrl,
+        unitsSold: v.units,
+        revenue: Math.round(v.revenue * 100) / 100,
+      }))
+      .sort((a, b) => b.unitsSold - a.unitsSold)
+      .slice(0, 5);
   }
 
   // ---------------------------------------------------------------- helpers

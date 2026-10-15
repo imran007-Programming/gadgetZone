@@ -111,6 +111,7 @@ export interface Order {
   guestEmail?: string | null;
   createdAt: string;
   items: OrderItem[];
+  user?: { id: string; name: string; email: string } | null;
 }
 
 export interface AdminStats {
@@ -118,6 +119,23 @@ export interface AdminStats {
   ordersByStatus: Record<OrderStatus, number>;
   lowStock: { id: string; name: string; slug: string; stock: number }[];
   newCustomers30d: number;
+  totalProducts: number;
+  totalCustomers: number;
+  totalOrders: number;
+}
+
+export interface RevenueTrendMonth {
+  label: string;
+  revenue: number;
+  orders: number;
+}
+
+export interface TopProduct {
+  productId: string;
+  name: string;
+  imageUrl: string | null;
+  unitsSold: number;
+  revenue: number;
 }
 
 /** Product sort values accepted by GET /products. */

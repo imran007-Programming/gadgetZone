@@ -134,4 +134,16 @@ export class AdminController {
   getStats() {
     return this.adminService.getStats();
   }
+
+  @Get('revenue-trend')
+  @ApiOperation({ summary: 'Monthly revenue for the last 12 months (admin)' })
+  getRevenueTrend() {
+    return this.adminService.getRevenueTrend();
+  }
+
+  @Get('top-products')
+  @ApiOperation({ summary: 'Top selling products by quantity (admin)' })
+  getTopProducts() {
+    return this.adminService.getTopProducts();
+  }
 }
