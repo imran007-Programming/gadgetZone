@@ -104,42 +104,53 @@ export default function SearchBar({ className = "" }: { className?: string }) {
 
       {open && results.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl">
-          <ul className="max-h-80 divide-y divide-zinc-100 overflow-y-auto">
-            {results.map((p) => (
-              <li key={p.id}>
-                <Link
-                  href={`/products/${p.slug}`}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 transition hover:bg-zinc-50"
-                >
-                  <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-zinc-100">
-                    {p.imageUrl && (
-                      <Image
-                        src={p.imageUrl}
-                        alt={p.name}
-                        fill
-                        sizes="48px"
-                        className="object-cover"
-                      />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-zinc-900">
-                      {p.name}
+          <ul className="grid max-h-80 grid-cols-2 divide-x divide-zinc-100 overflow-y-auto">
+            {results.map((p) => {
+              const hasDiscount =
+                p.comparePrice != null && p.comparePrice > p.price;
+              return (
+                <li key={p.id} className="border-b border-zinc-100">
+                  <Link
+                    href={`/products/${p.slug}`}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-3 px-3 py-3 transition hover:bg-zinc-50"
+                  >
+                    <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-50">
+                      {p.imageUrl && (
+                        <Image
+                          src={p.imageUrl}
+                          alt={p.name}
+                          fill
+                          sizes="56px"
+                          className="object-cover"
+                        />
+                      )}
                     </span>
-                    <span className="block text-sm font-semibold text-blue-600">
-                      {formatPrice(p.price)}
+                    <span className="min-w-0 flex-1">
+                      <span className="line-clamp-2 block text-[13px] font-medium leading-snug text-zinc-800">
+                        {p.name}
+                      </span>
+                      <span className="mt-0.5 block text-sm">
+                        {hasDiscount && (
+                          <span className="mr-1.5 text-zinc-400 line-through">
+                            {formatPrice(p.comparePrice!)}
+                          </span>
+                        )}
+                        <span className="font-bold text-blue-600">
+                          {formatPrice(p.price)}
+                        </span>
+                      </span>
                     </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
           <button
             onClick={submit}
-            className="w-full bg-zinc-50 px-3 py-2.5 text-center text-sm font-medium text-blue-600 transition hover:bg-zinc-100"
+            className="w-full bg-white px-3 py-3 text-center text-sm font-bold uppercase tracking-wide text-zinc-800 transition hover:bg-zinc-50"
           >
-            See all results for &ldquo;{query.trim()}&rdquo;
+            View all results
           </button>
         </div>
       )}
