@@ -62,6 +62,17 @@ export default function ProductCard({ product }: { product: Product }) {
             Out of stock
           </span>
         )}
+        {/* Slide-up add-to-cart bar: hidden below, rises on hover (always visible on touch) */}
+        {!outOfStock && (
+          <button
+            onClick={quickAdd}
+            aria-label={`Add ${product.name} to cart`}
+            className="absolute inset-x-0 bottom-0 flex translate-y-0 items-center justify-center gap-2 bg-blue-600/95 py-2.5 text-sm font-semibold text-white backdrop-blur transition-transform duration-300 hover:bg-blue-700 lg:translate-y-full lg:group-hover:translate-y-0"
+          >
+            <ShoppingCart className="h-4 w-4 text-white" />
+            Add to Cart
+          </button>
+        )}
       </Link>
       <div className="flex flex-1 flex-col gap-1 p-3.5">
         <Link href={`/products/${product.slug}`}>
@@ -80,14 +91,6 @@ export default function ProductCard({ product }: { product: Product }) {
               </span>
             )}
           </div>
-          <button
-            onClick={quickAdd}
-            disabled={outOfStock}
-            aria-label={`Add ${product.name} to cart`}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm transition hover:bg-blue-600 disabled:opacity-30"
-          >
-            <ShoppingCart className="h-[18px] w-[18px]" />
-          </button>
         </div>
       </div>
     </div>
