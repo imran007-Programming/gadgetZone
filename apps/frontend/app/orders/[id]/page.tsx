@@ -1,12 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { RotateCcw } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/utils";
-import type { Order } from "@/lib/types";
+import type { Order, ReturnStatus } from "@/lib/types";
 import { BackLink, ErrorState, RequireAuth, Spinner, StatusBadge } from "@/components/ui";
 
 export default function OrderDetailPage() {
@@ -21,7 +23,6 @@ function OrderDetailContent() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const toast = useToast();
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const orderQuery = useQuery({
@@ -104,6 +105,14 @@ function OrderDetailContent() {
             </li>
           ))}
         </ul>
+        {(order.discountAmount ?? 0) > 0 && (
+          <div className="mt-3 flex justify-between border-t border-zinc-200 pt-3 text-sm">
+            <span className="text-zinc-500">
+              Coupon <span className="font-mono font-semibold text-zinc-700">{order.couponCode}</span>
+            </span>
+            <span className="font-semibold text-primary-700">−{formatPrice(order.discountAmount ?? 0)}</span>
+          </div>
+        )}
         <div className="mt-3 flex justify-between border-t border-zinc-200 pt-3">
           <span className="text-sm font-medium text-zinc-500">Total</span>
           <span className="text-base font-bold text-zinc-900">
@@ -130,12 +139,14 @@ function OrderDetailContent() {
         </p>
       </div>
 
+      {order.status === "DELIVERED" && <ReturnSection order={order} />}
+
       {order.status === "PENDING" && (
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => payMutation.mutate()}
             disabled={payMutation.isPending}
-            className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
+            className="rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-600 disabled:opacity-40"
           >
             {payMutation.isPending ? "Processing…" : "Pay now (mock)"}
           </button>
@@ -157,6 +168,126 @@ function OrderDetailContent() {
           {((payMutation.error ?? cancelMutation.error) as Error).message}
         </p>
       )}
+    </div>
+  );
+}
+
+const RETURN_REASONS = [
+  "Defective or not working",
+  "Wrong item received",
+  "Damaged in delivery",
+  "Not as described",
+  "Changed my mind",
+];
+
+const RETURN_LABEL: Record<ReturnStatus, { text: string; className: string }> = {
+  REQUESTED: { text: "Return requested", className: "bg-amber-100 text-amber-700" },
+  APPROVED: { text: "Return approved", className: "bg-sky-100 text-sky-700" },
+  REJECTED: { text: "Return rejected", className: "bg-rose-100 text-rose-700" },
+  REFUNDED: { text: "Refunded", className: "bg-emerald-100 text-emerald-700" },
+};
+
+/** Return status for a delivered order, or a form to request one. */
+function ReturnSection({ order }: { order: Order }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState(RETURN_REASONS[0]);
+  const [details, setDetails] = useState("");
+  const current = order.returnRequest ?? null;
+  // A rejected request can be followed by a new one; open or refunded ones cannot
+  const canRequest = !current || current.status === "REJECTED";
+
+  const requestMutation = useMutation({
+    mutationFn: () => apiClient.post("/returns", { orderId: order.id, reason, details: details.trim() || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order", order.id] });
+      setOpen(false);
+      setDetails("");
+      toast.success("Return requested. We'll review it shortly.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200">
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-zinc-500">
+        <RotateCcw className="h-4 w-4" />
+        Returns
+      </h2>
+
+      {current && (
+        <div className="mb-3 space-y-1 text-sm">
+          <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${RETURN_LABEL[current.status].className}`}>
+            {RETURN_LABEL[current.status].text}
+          </span>
+          <p className="text-zinc-600">Reason: {current.reason}</p>
+          {current.refundAmount != null && (
+            <p className="text-zinc-600">
+              Refund: <span className="font-semibold text-zinc-900">{formatPrice(current.refundAmount)}</span>
+            </p>
+          )}
+          {current.adminNote && <p className="text-zinc-500">Note from the store: {current.adminNote}</p>}
+        </div>
+      )}
+
+      {canRequest &&
+        (open ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              requestMutation.mutate();
+            }}
+            className="space-y-3"
+          >
+            <label className="block text-sm font-medium text-zinc-700">
+              Reason
+              <select
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+              >
+                {RETURN_REASONS.map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium text-zinc-700">
+              Details (optional)
+              <textarea
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="Tell us what went wrong"
+                className="mt-1 w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+              />
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={requestMutation.isPending}
+                className="rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40"
+              >
+                {requestMutation.isPending ? "Sending…" : "Submit request"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-xl px-5 py-2.5 text-sm font-semibold text-zinc-600 ring-1 ring-zinc-300 hover:bg-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            onClick={() => setOpen(true)}
+            className="rounded-xl px-5 py-2.5 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-300 hover:bg-white"
+          >
+            {current ? "Request again" : "Request a return"}
+          </button>
+        ))}
     </div>
   );
 }

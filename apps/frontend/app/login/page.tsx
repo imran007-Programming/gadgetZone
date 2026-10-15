@@ -19,6 +19,13 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+// Local development only: set NEXT_PUBLIC_DEMO_LOGIN=true at build time to show one-click demo logins.
+const SHOW_DEMO_LOGIN = process.env.NEXT_PUBLIC_DEMO_LOGIN === "true";
+const DEMO_ACCOUNTS = {
+  admin: { email: "admin@example.com", password: "Admin@123" },
+  customer: { email: "priya.patel@example.com", password: "Customer@123" },
+} as const;
+
 export default function LoginPage() {
   return (
     <Suspense fallback={<Spinner />}>
@@ -28,7 +35,7 @@ export default function LoginPage() {
 }
 
 function LoginContent() {
-  const { login, isAuthenticated, isLoading, user, isAdmin } = useAuth();
+  const { login, isAuthenticated, isLoading, isAdmin } = useAuth();
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -38,18 +45,22 @@ function LoginContent() {
     register,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
-  // Role-aware redirect: admins → /admin, customers → next or /dashboard
-  const getRedirect = () => {
-    if (isAdmin) return "/admin";
-    return next ?? "/dashboard";
+  const demoLogin = (account: keyof typeof DEMO_ACCOUNTS) => {
+    setValue("email", DEMO_ACCOUNTS[account].email);
+    setValue("password", DEMO_ACCOUNTS[account].password);
+    handleSubmit(onSubmit)();
   };
 
+  // Role-aware redirect: admins → /admin, customers → next or /dashboard
+  const redirectTo = isAdmin ? "/admin" : (next ?? "/dashboard");
+
   useEffect(() => {
-    if (!isLoading && isAuthenticated) router.replace(getRedirect());
-  }, [isLoading, isAuthenticated, isAdmin, router, next]);
+    if (!isLoading && isAuthenticated) router.replace(redirectTo);
+  }, [isLoading, isAuthenticated, router, redirectTo]);
 
   const onSubmit = async (values: LoginForm) => {
     try {
@@ -78,7 +89,7 @@ function LoginContent() {
         <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Log in</h1>
         <p className="mt-1 text-sm text-zinc-500">
           New here?{" "}
-          <Link href="/register" className="font-medium text-blue-600 hover:underline">
+          <Link href="/register" className="font-medium text-primary-600 hover:underline">
             Create an account
           </Link>
         </p>
@@ -114,11 +125,32 @@ function LoginContent() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-600 disabled:opacity-40"
+            className="w-full rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white hover:bg-primary-600 disabled:opacity-40"
           >
             {isSubmitting ? "Logging in…" : "Log in"}
           </button>
         </form>
+
+        {SHOW_DEMO_LOGIN && (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => demoLogin("admin")}
+              className="rounded-xl bg-zinc-900 px-3 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-40"
+            >
+              Demo: Admin
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => demoLogin("customer")}
+              className="rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-zinc-900 ring-1 ring-zinc-300 hover:bg-zinc-100 disabled:opacity-40"
+            >
+              Demo: Customer
+            </button>
+          </div>
+        )}
 
         <p className="mt-4 rounded-lg bg-white p-3 text-xs text-zinc-500">
           Demo accounts — admin: <span className="font-mono">admin@example.com</span> /

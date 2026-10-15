@@ -13,6 +13,8 @@ export interface AccessTokenPayload {
 export interface RefreshTokenPayload {
   sub: string;
   jti: string;
+  /** Issued-at (seconds), added by the JWT library. */
+  iat?: number;
 }
 
 /** Shape attached to `request.user` by JwtAuthGuard. */

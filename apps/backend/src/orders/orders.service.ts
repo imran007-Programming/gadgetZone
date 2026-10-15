@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { CreateGuestOrderDto } from './dto/create-guest-order.dto.js';
 import { PaymentService } from './payment/payment.service.js';
+import { CouponsService } from '../coupons/coupons.service.js';
 
 const ORDER_INCLUDE = {
   items: {
@@ -23,6 +24,8 @@ const ORDER_INCLUDE = {
       },
     },
   },
+  // Latest return request, shown on the customer order page
+  returnRequests: { orderBy: { createdAt: 'desc' }, take: 1 },
 } as const;
 
 type OrderWithItems = Prisma.OrderGetPayload<{
@@ -43,6 +46,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly paymentService: PaymentService,
+    private readonly coupons: CouponsService,
   ) {}
 
   async create(userId: string, dto: CreateOrderDto) {
@@ -81,11 +85,16 @@ export class OrdersService {
         total = total.plus(product.price.mul(quantity));
       }
 
+      const { coupon, discount } = await this.applyCoupon(tx, dto.couponCode, total);
+
       const created = await tx.order.create({
         data: {
           userId,
           status: OrderStatus.PENDING,
-          totalAmount: total,
+          totalAmount: total.minus(discount),
+          discountAmount: discount,
+          couponId: coupon?.id ?? null,
+          couponCode: coupon?.code ?? null,
           shippingAddress:
             dto.shippingAddress as unknown as Prisma.InputJsonValue,
           items: {
@@ -106,6 +115,7 @@ export class OrdersService {
         });
       }
 
+      if (coupon) await this.coupons.consume(tx, coupon.id);
       await tx.cartItem.deleteMany({ where: { userId } });
       return created;
     });
@@ -148,11 +158,16 @@ export class OrdersService {
         });
       }
 
+      const { coupon, discount } = await this.applyCoupon(tx, dto.couponCode, total);
+
       const created = await tx.order.create({
         data: {
           userId: null,
           status: OrderStatus.PENDING,
-          totalAmount: total,
+          totalAmount: total.minus(discount),
+          discountAmount: discount,
+          couponId: coupon?.id ?? null,
+          couponCode: coupon?.code ?? null,
           paymentMethod: 'cod',
           guestName: dto.name,
           guestPhone: dto.phone,
@@ -184,6 +199,7 @@ export class OrdersService {
         });
       }
 
+      if (coupon) await this.coupons.consume(tx, coupon.id);
       return created;
     });
 
@@ -220,6 +236,7 @@ export class OrdersService {
           data: { stock: { increment: item.quantity } },
         });
       }
+      await this.coupons.release(tx, updated.couponId);
       return updated;
     });
 
@@ -259,6 +276,13 @@ export class OrdersService {
     return order;
   }
 
+  /** Validates an optional coupon against the order subtotal inside the transaction. */
+  private async applyCoupon(tx: Prisma.TransactionClient, code: string | undefined, subtotal: Prisma.Decimal) {
+    if (!code?.trim()) return { coupon: null, discount: new Prisma.Decimal(0) };
+    const coupon = await this.coupons.findApplicable(code, subtotal, tx);
+    return { coupon, discount: this.coupons.computeDiscount(coupon, subtotal) };
+  }
+
   private assertTransition(from: OrderStatus, to: OrderStatus): void {
     if (!ALLOWED_TRANSITIONS[from].includes(to)) {
       throw new BadRequestException(
@@ -273,8 +297,21 @@ export class OrdersService {
       userId: order.userId,
       status: order.status,
       totalAmount: order.totalAmount.toNumber(),
+      discountAmount: order.discountAmount.toNumber(),
+      couponCode: order.couponCode,
+      paymentMethod: order.paymentMethod,
       shippingAddress: order.shippingAddress,
       createdAt: order.createdAt,
+      returnRequest: order.returnRequests[0]
+        ? {
+            id: order.returnRequests[0].id,
+            status: order.returnRequests[0].status,
+            reason: order.returnRequests[0].reason,
+            refundAmount: order.returnRequests[0].refundAmount?.toNumber() ?? null,
+            adminNote: order.returnRequests[0].adminNote,
+            createdAt: order.returnRequests[0].createdAt,
+          }
+        : null,
       items: order.items.map((item) => ({
         id: item.id,
         productId: item.productId,

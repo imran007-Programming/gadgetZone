@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   BadgePercent,
@@ -53,7 +53,7 @@ function CategoryDropdown({ slug }: { slug: string }) {
                     <span className="block truncate text-sm font-medium text-zinc-700">
                       {p.name}
                     </span>
-                    <span className="text-xs font-bold text-blue-600">
+                    <span className="text-xs font-bold text-primary-600">
                       {formatPrice(p.price)}
                     </span>
                   </span>
@@ -64,7 +64,7 @@ function CategoryDropdown({ slug }: { slug: string }) {
         )}
         <Link
           href={`/products?category=${slug}`}
-          className="block border-t border-zinc-100 px-4 py-2.5 text-center text-xs font-bold text-blue-600 transition hover:bg-blue-50"
+          className="block border-t border-zinc-100 px-4 py-2.5 text-center text-xs font-bold text-primary-600 transition hover:bg-primary-50"
         >
           View all products
         </Link>
@@ -74,15 +74,16 @@ function CategoryDropdown({ slug }: { slug: string }) {
 }
 
 export default function Header() {
-  const { isAuthenticated, isAdmin, user, logout } = useAuth();
+  const { isAuthenticated, isAdmin, logout } = useAuth();
   const toast = useToast();
   const router = useRouter();
-  const pathname = usePathname();
   const openCartDrawer = useCartStore((s) => s.openDrawer);
   const cartCount = useCartStore(selectItemCount);
   const wishlistCount = useWishlistStore(selectWishlistCount);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [hoverCat, setHoverCat] = useState<string | null>(null);
+  // Category of the page being viewed (/products?category=…), kept underlined
+  const [activeCat, setActiveCat] = useState<string | null>(null);
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -103,11 +104,16 @@ export default function Header() {
       {/* Main navbar row */}
       <div className="mx-auto flex h-[72px] max-w-[1450px] items-center gap-3 px-4 sm:gap-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 font-display text-xl font-bold text-white shadow-sm">
-            G
-          </span>
+          <Image
+            src="/logo.png"
+            alt="GadgetLax"
+            width={40}
+            height={40}
+            priority
+            className="h-10 w-10 rounded-xl shadow-sm"
+          />
           <span className="hidden font-display text-xl font-bold tracking-tight text-zinc-900 sm:block">
-            Gadget<span className="text-blue-600">Lax</span>
+            Gadget<span className="text-primary-600">Lax</span>
           </span>
         </Link>
 
@@ -117,7 +123,7 @@ export default function Header() {
           onMouseEnter={() => setBrowseOpen(true)}
           onMouseLeave={() => setBrowseOpen(false)}
         >
-          <button className="flex items-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+          <button className="flex items-center gap-2 rounded-full bg-primary-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
             <Menu className="h-4 w-4" />
             Browse Categories
             <ChevronDown className={`h-4 w-4 transition-transform ${browseOpen ? "rotate-180" : ""}`} />
@@ -129,7 +135,7 @@ export default function Header() {
                   <Link
                     key={c.id}
                     href={`/products?category=${c.slug}`}
-                    className="flex items-center justify-between px-5 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-blue-50 hover:text-blue-700"
+                    className="flex items-center justify-between px-5 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-primary-50 hover:text-primary-700"
                   >
                     {c.name}
                     <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-zinc-300" />
@@ -146,7 +152,7 @@ export default function Header() {
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <Link
             href="/products"
-            className="hidden items-center gap-1.5 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 lg:flex"
+            className="hidden items-center gap-1.5 rounded-full bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 lg:flex"
           >
             <BadgePercent className="h-4 w-4" />
             Discounts
@@ -158,7 +164,7 @@ export default function Header() {
           >
             <Heart className="h-5 w-5" />
             {wishlistCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 px-1 text-[11px] font-bold text-white">
                 {wishlistCount}
               </span>
             )}
@@ -188,7 +194,7 @@ export default function Header() {
             aria-label="Open cart"
           >
             <ShoppingCart className="h-5 w-5" />
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white ring-2 ring-white">
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 px-1 text-[11px] font-bold text-white ring-2 ring-white">
               {cartCount}
             </span>
           </button>
@@ -210,9 +216,14 @@ export default function Header() {
         <SearchBar className="w-full" />
       </div>
 
+      <Suspense fallback={null}>
+        <ActiveCategorySync onChange={setActiveCat} />
+      </Suspense>
+
       {/* Category nav row */}
       <nav className="border-t border-zinc-100">
-        <div className="mx-auto flex max-w-[1450px] items-center gap-7 overflow-x-auto px-4 sm:px-6">
+        {/* Scrolls sideways on mobile; on desktop overflow must stay visible or the hover dropdowns get clipped */}
+        <div className="mx-auto flex max-w-[1450px] items-center gap-7 overflow-x-auto px-4 sm:px-6 md:flex-wrap md:gap-y-0 md:overflow-visible">
           <Link
             href="/products"
             className="whitespace-nowrap py-3 text-sm font-semibold text-zinc-900"
@@ -228,28 +239,42 @@ export default function Header() {
             >
               <Link
                 href={`/products?category=${c.slug}`}
-                className={`flex items-center gap-1 whitespace-nowrap py-3 text-sm font-medium transition ${
-                  hoverCat === c.slug ? "text-blue-600" : "text-zinc-700 hover:text-blue-600"
+                aria-current={activeCat === c.slug ? "page" : undefined}
+                className={`flex items-center gap-1 whitespace-nowrap py-3 text-sm transition ${
+                  activeCat === c.slug
+                    ? "font-semibold text-primary-600"
+                    : hoverCat === c.slug
+                      ? "font-medium text-primary-600"
+                      : "font-medium text-zinc-700 hover:text-primary-600"
                 }`}
               >
                 {c.name}
                 <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
-                {/* Underline on hover */}
+                {/* Underline: grows left → right on hover, shrinks away to the right on leave; always on for the active category */}
                 <span
-                  className={`absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-blue-600 transition-all ${
-                    hoverCat === c.slug ? "opacity-100" : "opacity-0"
+                  aria-hidden
+                  className={`absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary-600 transition-transform duration-300 ease-out ${
+                    activeCat === c.slug || hoverCat === c.slug ? "origin-left scale-x-100" : "origin-right scale-x-0"
                   }`}
                 />
               </Link>
               {hoverCat === c.slug && <CategoryDropdown slug={c.slug} />}
             </div>
           ))}
+          <Link
+            href="/brands"
+            className="whitespace-nowrap py-3 text-sm font-semibold text-primary-600 hover:text-primary-700"
+          >
+            All Brands
+          </Link>
           {/* Mobile: simple category links (no hover dropdown) */}
           {(categories ?? []).map((c) => (
             <Link
               key={`m-${c.id}`}
               href={`/products?category=${c.slug}`}
-              className="whitespace-nowrap py-3 text-sm font-medium text-zinc-700 md:hidden"
+              className={`whitespace-nowrap border-b-2 py-3 text-sm md:hidden ${
+                activeCat === c.slug ? "border-primary-600 font-semibold text-primary-600" : "border-transparent font-medium text-zinc-700"
+              }`}
             >
               {c.name}
             </Link>
@@ -258,4 +283,19 @@ export default function Header() {
       </nav>
     </header>
   );
+}
+
+/**
+ * Reports the category in the URL (only on /products). Kept in its own
+ * component so useSearchParams sits inside a Suspense boundary and the header
+ * itself can still render statically.
+ */
+function ActiveCategorySync({ onChange }: { onChange: (slug: string | null) => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const slug = pathname === "/products" ? searchParams.get("category") : null;
+  useEffect(() => {
+    onChange(slug);
+  }, [slug, onChange]);
+  return null;
 }

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CloudinaryService } from '../cloudinary/cloudinary.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
@@ -13,8 +14,15 @@ import { UpdateCategoryDto } from './dto/update-category.dto.js';
 
 const PRODUCT_CATEGORY_SELECT = { id: true, name: true, slug: true } as const;
 
-type ProductWithCategory = Prisma.ProductGetPayload<{
-  include: { category: { select: typeof PRODUCT_CATEGORY_SELECT } };
+/** Every product read/write returns the category and its gallery in order. */
+const PRODUCT_INCLUDE = {
+  category: { select: PRODUCT_CATEGORY_SELECT },
+  images: { orderBy: { position: 'asc' } },
+  brand: { select: { id: true, name: true, slug: true, logoUrl: true } },
+} as const;
+
+type ProductWithRelations = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_INCLUDE;
 }>;
 
 const ADMIN_ORDER_INCLUDE = {
@@ -61,12 +69,16 @@ const SAFE_USER_SELECT = {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinary: CloudinaryService,
+  ) {}
 
   // ------------------------------------------------------------- products
 
   async createProduct(dto: CreateProductDto) {
     await this.assertCategoryExists(dto.categoryId);
+    if (dto.brandId) await this.assertBrandExists(dto.brandId);
     await this.assertProductSlugFree(dto.slug);
     this.assertComparePrice(dto.price, dto.comparePrice);
 
@@ -81,11 +93,12 @@ export class AdminService {
             ? new Prisma.Decimal(dto.comparePrice)
             : undefined,
         stock: dto.stock,
-        imageUrl: dto.imageUrl,
+        imageUrl: dto.imageUrl ?? '',
         isActive: dto.isActive ?? true,
         categoryId: dto.categoryId,
+        brandId: dto.brandId || null,
       },
-      include: { category: { select: PRODUCT_CATEGORY_SELECT } },
+      include: PRODUCT_INCLUDE,
     });
     return this.toProductDto(product);
   }
@@ -96,6 +109,7 @@ export class AdminService {
     if (dto.slug !== undefined && dto.slug !== product.slug) {
       await this.assertProductSlugFree(dto.slug);
     }
+    if (dto.brandId) await this.assertBrandExists(dto.brandId);
     if (dto.categoryId !== undefined && dto.categoryId !== product.categoryId) {
       await this.assertCategoryExists(dto.categoryId);
     }
@@ -122,8 +136,9 @@ export class AdminService {
         ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+        ...(dto.brandId !== undefined && { brandId: dto.brandId || null }),
       },
-      include: { category: { select: PRODUCT_CATEGORY_SELECT } },
+      include: PRODUCT_INCLUDE,
     });
     return this.toProductDto(updated);
   }
@@ -140,7 +155,7 @@ export class AdminService {
     const updated = await this.prisma.product.update({
       where: { id },
       data: { isActive: false },
-      include: { category: { select: PRODUCT_CATEGORY_SELECT } },
+      include: PRODUCT_INCLUDE,
     });
     return this.toProductDto(updated);
   }
@@ -150,9 +165,87 @@ export class AdminService {
     const updated = await this.prisma.product.update({
       where: { id },
       data: { stock },
-      include: { category: { select: PRODUCT_CATEGORY_SELECT } },
+      include: PRODUCT_INCLUDE,
     });
     return this.toProductDto(updated);
+  }
+
+  /**
+   * Upload one or more images to Cloudinary and attach them to the product.
+   * The first image becomes the cover (imageUrl) if the product had none.
+   */
+  async addProductImages(productId: string, files: Express.Multer.File[]) {
+    if (!files?.length) {
+      throw new BadRequestException('Attach at least one image file');
+    }
+    const product = await this.findProductOrThrow(productId);
+    const folder = `gadgetlax/products/${product.slug}`;
+    const startPosition = product.images.length;
+
+    const uploaded = [];
+    for (const file of files) {
+      uploaded.push(await this.cloudinary.uploadBuffer(file.buffer, folder));
+    }
+
+    await this.prisma.productImage.createMany({
+      data: uploaded.map((img, i) => ({
+        productId,
+        url: img.url,
+        publicId: img.publicId,
+        position: startPosition + i,
+      })),
+    });
+
+    if (!product.imageUrl) {
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: { imageUrl: uploaded[0].url },
+      });
+    }
+
+    return this.getProductDto(productId);
+  }
+
+  /** Remove one gallery image from Cloudinary and the database. */
+  async deleteProductImage(productId: string, imageId: string) {
+    const product = await this.findProductOrThrow(productId);
+    const image = product.images.find((img) => img.id === imageId);
+    if (!image) {
+      throw new NotFoundException(`Image "${imageId}" not found on this product`);
+    }
+
+    await this.cloudinary.destroy(image.publicId);
+    await this.prisma.productImage.delete({ where: { id: imageId } });
+
+    // Keep the cover valid: if the removed image was the cover, use the next one.
+    if (product.imageUrl === image.url) {
+      const next = product.images.find((img) => img.id !== imageId);
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: { imageUrl: next?.url ?? '' },
+      });
+    }
+
+    return this.getProductDto(productId);
+  }
+
+  /** Every product, active or not, newest first (admin catalog and inventory). */
+  async listProducts() {
+    const products = await this.prisma.product.findMany({
+      include: PRODUCT_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+    });
+    return products.map((p) => this.toProductDto(p));
+  }
+
+  /** Single product for the admin edit page; includes inactive products. */
+  async getProduct(id: string) {
+    return this.getProductDto(id);
+  }
+
+  private async getProductDto(id: string) {
+    const product = await this.findProductOrThrow(id);
+    return this.toProductDto(product);
   }
 
   // ------------------------------------------------------------ categories
@@ -235,6 +328,13 @@ export class AdminService {
           await tx.product.update({
             where: { id: item.productId },
             data: { stock: { increment: item.quantity } },
+          });
+        }
+        // Give the coupon use back, as the customer cancel flow does
+        if (updated.couponId) {
+          await tx.coupon.updateMany({
+            where: { id: updated.couponId, usedCount: { gt: 0 } },
+            data: { usedCount: { decrement: 1 } },
           });
         }
         return updated;
@@ -371,6 +471,55 @@ export class AdminService {
   }
 
   /** Monthly revenue + order count for the last 12 months (oldest → newest). */
+  /** Non-cancelled orders created today (UTC), bucketed by hour 00–23. */
+  async getOrdersByHour() {
+    const start = new Date();
+    start.setUTCHours(0, 0, 0, 0);
+    const orders = await this.prisma.order.findMany({
+      where: { createdAt: { gte: start }, status: { not: OrderStatus.CANCELLED } },
+      select: { createdAt: true, totalAmount: true },
+    });
+    const hours = Array.from({ length: 24 }, (_, h) => ({
+      hour: String(h).padStart(2, '0'),
+      orders: 0,
+      revenue: 0,
+    }));
+    for (const o of orders) {
+      const h = o.createdAt.getUTCHours();
+      hours[h].orders += 1;
+      hours[h].revenue += o.totalAmount.toNumber();
+    }
+    return {
+      date: start.toISOString().slice(0, 10),
+      totalOrders: orders.length,
+      totalRevenue: hours.reduce((n, h) => n + h.revenue, 0),
+      hours,
+    };
+  }
+
+  /** Revenue and units from paid/shipped/delivered orders, grouped by product category. */
+  async getRevenueByCategory() {
+    const items = await this.prisma.orderItem.findMany({
+      where: {
+        order: { status: { in: [OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.DELIVERED] } },
+      },
+      select: {
+        quantity: true,
+        unitPrice: true,
+        product: { select: { category: { select: { name: true } } } },
+      },
+    });
+    const byCategory = new Map<string, { category: string; revenue: number; units: number }>();
+    for (const item of items) {
+      const name = item.product.category.name;
+      const row = byCategory.get(name) ?? { category: name, revenue: 0, units: 0 };
+      row.revenue += item.unitPrice.toNumber() * item.quantity;
+      row.units += item.quantity;
+      byCategory.set(name, row);
+    }
+    return [...byCategory.values()].sort((a, b) => b.revenue - a.revenue);
+  }
+
   async getRevenueTrend() {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
@@ -457,7 +606,7 @@ export class AdminService {
   private async findProductOrThrow(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { category: { select: PRODUCT_CATEGORY_SELECT } },
+      include: PRODUCT_INCLUDE,
     });
     if (!product) {
       throw new NotFoundException(`Product "${id}" not found`);
@@ -479,6 +628,13 @@ export class AdminService {
     });
     if (!category) {
       throw new NotFoundException(`Category "${categoryId}" not found`);
+    }
+  }
+
+  private async assertBrandExists(brandId: string) {
+    const brand = await this.prisma.brand.findUnique({ where: { id: brandId } });
+    if (!brand) {
+      throw new NotFoundException(`Brand "${brandId}" not found`);
     }
   }
 
@@ -513,7 +669,7 @@ export class AdminService {
     }
   }
 
-  private toProductDto(p: ProductWithCategory) {
+  private toProductDto(p: ProductWithRelations) {
     return {
       id: p.id,
       name: p.name,
@@ -523,11 +679,18 @@ export class AdminService {
       comparePrice: p.comparePrice ? p.comparePrice.toNumber() : null,
       stock: p.stock,
       imageUrl: p.imageUrl,
+      images: p.images.map((img) => ({
+        id: img.id,
+        url: img.url,
+        position: img.position,
+      })),
       isActive: p.isActive,
       categoryId: p.categoryId,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
       category: p.category,
+      brandId: p.brandId,
+      brand: p.brand,
     };
   }
 
@@ -538,6 +701,12 @@ export class AdminService {
       status: order.status,
       totalAmount: order.totalAmount.toNumber(),
       shippingAddress: order.shippingAddress,
+      paymentMethod: order.paymentMethod,
+      discountAmount: order.discountAmount.toNumber(),
+      couponCode: order.couponCode,
+      guestName: order.guestName,
+      guestPhone: order.guestPhone,
+      guestEmail: order.guestEmail,
       createdAt: order.createdAt,
       user: order.user,
       items: order.items.map((item) => ({

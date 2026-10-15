@@ -30,10 +30,12 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
   const { user, logout } = useAuth();
   const toast = useToast();
 
-  // Close the mobile drawer on navigation.
-  useEffect(() => {
+  // Close the mobile drawer on navigation (adjusted during render, not in an effect)
+  const [drawerPath, setDrawerPath] = useState(pathname);
+  if (drawerPath !== pathname) {
+    setDrawerPath(pathname);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   // Lock body scroll while the mobile drawer is open.
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
             href={item.href}
             className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
               active
-                ? "bg-blue-100 text-blue-800 ring-1 ring-blue-200"
+                ? "bg-primary-100 text-primary-800 ring-1 ring-primary-200"
                 : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
             }`}
           >
@@ -86,7 +88,7 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
   const userCard = (
     <div className="border-t border-zinc-200 p-4">
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 font-display text-sm font-bold text-blue-700">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-100 font-display text-sm font-bold text-primary-700">
           {user?.name?.charAt(0).toUpperCase() ?? "?"}
         </span>
         <div className="min-w-0 flex-1">
@@ -109,11 +111,11 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
 
   const brand = (
     <Link href="/" className="flex items-center gap-2.5 px-5 py-5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 font-display text-lg font-bold text-white">
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 font-display text-lg font-bold text-white">
         G
       </span>
       <span className="font-display text-lg font-bold tracking-tight text-zinc-900">
-        Gadget<span className="text-blue-600">Lax</span>
+        Gadget<span className="text-primary-600">Lax</span>
       </span>
     </Link>
   );
@@ -174,7 +176,7 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
           </div>
           <Link
             href="/"
-            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-600 ring-1 ring-blue-200 transition hover:bg-blue-50"
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-primary-600 ring-1 ring-primary-200 transition hover:bg-primary-50"
           >
             ← Back to store
           </Link>

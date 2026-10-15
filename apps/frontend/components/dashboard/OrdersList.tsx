@@ -35,7 +35,7 @@ export default function OrdersList({ compact = false }: { compact?: boolean }) {
         action={
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
+            className="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-600"
           >
             <ShoppingBag className="h-4 w-4" />
             Start shopping
@@ -57,11 +57,11 @@ export default function OrdersList({ compact = false }: { compact?: boolean }) {
           <li key={o.id}>
             <Link
               href={`/orders/${o.id}`}
-              className="flex items-center justify-between gap-4 rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200 transition hover:ring-blue-600/40"
+              className="flex items-center justify-between gap-4 rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200 transition hover:ring-primary-600/40"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 sm:flex">
-                  <Package className="h-5 w-5 text-blue-600" />
+                  <Package className="h-5 w-5 text-primary-600" />
                 </span>
                 <div className="min-w-0">
                   <p className="font-mono text-sm font-semibold text-zinc-900">
@@ -86,7 +86,7 @@ export default function OrdersList({ compact = false }: { compact?: boolean }) {
       {compact && orders.length > 5 && (
         <Link
           href="/dashboard/orders"
-          className="inline-block text-sm font-medium text-blue-600 hover:underline"
+          className="inline-block text-sm font-medium text-primary-600 hover:underline"
         >
           View all {orders.length} orders →
         </Link>

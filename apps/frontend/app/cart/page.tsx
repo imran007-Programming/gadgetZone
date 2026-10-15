@@ -31,7 +31,7 @@ export default function CartPage() {
         action={
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
+            className="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-600"
           >
             <ShoppingCart className="h-4 w-4" />
             Shop products
@@ -91,7 +91,7 @@ export default function CartPage() {
                 <div className="flex items-start justify-between gap-2">
                   <Link
                     href={`/products/${item.slug}`}
-                    className="truncate text-sm font-semibold text-zinc-900 hover:text-blue-700"
+                    className="truncate text-sm font-semibold text-zinc-900 hover:text-primary-700"
                   >
                     {item.name}
                   </Link>
@@ -109,7 +109,7 @@ export default function CartPage() {
                     <button
                       aria-label="Decrease quantity"
                       onClick={() => setQty(item.productId, item.quantity - 1)}
-                      className="p-2 text-zinc-500 transition hover:text-blue-600"
+                      className="p-2 text-zinc-500 transition hover:text-primary-600"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
@@ -119,7 +119,7 @@ export default function CartPage() {
                     <button
                       aria-label="Increase quantity"
                       onClick={() => setQty(item.productId, item.quantity + 1)}
-                      className="p-2 text-zinc-500 transition hover:text-blue-600"
+                      className="p-2 text-zinc-500 transition hover:text-primary-600"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -144,13 +144,13 @@ export default function CartPage() {
           </p>
           <button
             onClick={() => router.push("/checkout")}
-            className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-600"
+            className="mt-4 w-full rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white hover:bg-primary-600"
           >
             Proceed to checkout
           </button>
           <Link
             href="/products"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-blue-700"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-primary-700"
           >
             <ArrowLeft className="h-4 w-4" />
             Continue shopping

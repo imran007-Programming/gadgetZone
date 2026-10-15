@@ -22,10 +22,31 @@ export class UsersService {
     return this.prisma.user.create({ data });
   }
 
+  /**
+   * Stores the current refresh token hash. previousHash keeps the token it
+   * replaced usable for a short grace period; passing null for both revokes
+   * the session entirely.
+   */
   updateRefreshTokenHash(
     id: string,
     refreshTokenHash: string | null,
+    previousHash: string | null = null,
   ): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        refreshTokenHash,
+        prevRefreshTokenHash: previousHash,
+        refreshRotatedAt: refreshTokenHash ? new Date() : null,
+      },
+    });
+  }
+
+  /**
+   * Replaces only the current refresh token hash, keeping the previous hash and
+   * its rotation time, so a grace-period retry cannot extend the grace window.
+   */
+  replaceCurrentRefreshTokenHash(id: string, refreshTokenHash: string): Promise<User> {
     return this.prisma.user.update({
       where: { id },
       data: { refreshTokenHash },

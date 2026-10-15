@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ecommerce}
       POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5434}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,6 +20,42 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./apps/backend
+    container_name: ecommerce-backend
+    restart: unless-stopped
+    env_file:
+      - ./apps/backend/.env
+    environment:
+      # Inside the compose network the DB host is "db", not localhost
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:-ecommerce}@db:5432/${POSTGRES_DB:-ecommerce}?schema=public
+      FRONTEND_URL: http://localhost:3001
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      args:
+        # Browser calls the API from the host, so this stays localhost
+        NEXT_PUBLIC_API_URL: http://localhost:3000
+        # Local demo only: shows one-click admin/customer login on /login
+        NEXT_PUBLIC_DEMO_LOGIN: "true"
+    container_name: ecommerce-frontend
+    restart: unless-stopped
+    environment:
+      # Used by server-side rendering (inside the container)
+      API_INTERNAL_URL: http://backend:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:

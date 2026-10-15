@@ -25,7 +25,7 @@ export default function MobileNav() {
 
   const itemCls = (active: boolean) =>
     `flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition ${
-      active ? "text-blue-700" : "text-zinc-500 hover:text-zinc-800"
+      active ? "text-primary-700" : "text-zinc-500 hover:text-zinc-800"
     }`;
 
   const isActive = (href: string) =>
@@ -53,7 +53,7 @@ export default function MobileNav() {
           <span className="relative">
             <ShoppingCart className="h-6 w-6" strokeWidth={1.8} />
             {cartCount > 0 && (
-              <span className="absolute -right-2 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-2 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-bold text-white">
                 {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}

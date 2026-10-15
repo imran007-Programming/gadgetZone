@@ -1,12 +1,13 @@
-/** Format a price as BDT (Taka). Accepts numbers or numeric strings (Prisma Decimal). */
+/**
+ * Format a price in Taka with the ৳ symbol, e.g. ৳14,500.
+ * Accepts numbers or numeric strings (Prisma Decimal).
+ */
 export function formatPrice(value: number | string | null | undefined): string {
   const n = typeof value === "string" ? parseFloat(value) : (value ?? 0);
   if (!Number.isFinite(n)) return "৳0";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "BDT",
-    maximumFractionDigits: 0,
-  }).format(n);
+  // The browser's BDT currency style prints "BDT 14,500", so add the symbol ourselves
+  const amount = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.abs(n));
+  return `${n < 0 ? "-" : ""}৳${amount}`;
 }
 
 /** Normalize a Prisma Decimal (string) or number to a number. */

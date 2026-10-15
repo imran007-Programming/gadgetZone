@@ -44,9 +44,14 @@ export class CreateProductDto {
   @Min(0)
   stock: number;
 
-  @ApiProperty({ example: 'https://example.com/images/trail-x1.jpg' })
+  /**
+   * Optional cover image URL. Images are normally added afterwards via
+   * POST /admin/products/:id/images; the cover is set from the first one.
+   */
+  @ApiPropertyOptional({ example: 'https://res.cloudinary.com/demo/image/upload/sample.jpg' })
+  @IsOptional()
   @IsUrl()
-  imageUrl: string;
+  imageUrl?: string;
 
   @ApiPropertyOptional({ example: true, default: true })
   @IsOptional()
@@ -57,4 +62,9 @@ export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   categoryId: string;
+
+  @ApiPropertyOptional({ description: 'Brand id; null removes the brand' })
+  @IsOptional()
+  @IsString()
+  brandId?: string | null;
 }

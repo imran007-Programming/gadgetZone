@@ -61,9 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
   });
 
-  useEffect(() => {
-    if (!sessionQuery.isPending) setBootstrapped(true);
-  }, [sessionQuery.isPending]);
+  // Latches once the first session check settles
+  if (!bootstrapped && !sessionQuery.isPending) setBootstrapped(true);
 
   // When a session is restored (e.g. via refresh cookie on page load),
   // pull the server cart/wishlist into the stores.

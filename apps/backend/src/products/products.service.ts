@@ -5,8 +5,15 @@ import { ProductSort, QueryProductsDto } from './dto/query-products.dto.js';
 
 const CATEGORY_SELECT = { id: true, name: true, slug: true } as const;
 
-type ProductWithCategory = Prisma.ProductGetPayload<{
-  include: { category: { select: typeof CATEGORY_SELECT } };
+/** Category plus the gallery, ordered for display. */
+const PRODUCT_INCLUDE = {
+  category: { select: CATEGORY_SELECT },
+  images: { orderBy: { position: "asc" } },
+  brand: { select: { id: true, name: true, slug: true, logoUrl: true } },
+} as const;
+
+type ProductWithRelations = Prisma.ProductGetPayload<{
+  include: typeof PRODUCT_INCLUDE;
 }>;
 
 /**
@@ -21,22 +28,37 @@ export class ProductsService {
 
   async findAll(query: QueryProductsDto) {
     const {
-      page = 1,
-      limit = 12,
+      page,
+      limit,
       search,
       category,
+      brand,
       minPrice,
       maxPrice,
       inStock,
-      sort = ProductSort.Newest,
+      sort,
     } = query;
 
     const where: Prisma.ProductWhereInput = { isActive: true };
-    if (search) {
-      where.name = { contains: search, mode: 'insensitive' };
+    // Every word must appear somewhere: name, brand, category or description
+    // ("sony headphones", "smart watch", "audio" all find something)
+    const terms = (search ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 6);
+    if (terms.length) {
+      where.AND = terms.map((term) => ({
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { brand: { name: { contains: term, mode: 'insensitive' } } },
+          { category: { name: { contains: term, mode: 'insensitive' } } },
+          { description: { contains: term, mode: 'insensitive' } },
+        ],
+      }));
     }
     if (category) {
       where.category = { slug: category };
+    }
+    const brandSlugs = brand?.split(",").map((b) => b.trim()).filter(Boolean) ?? [];
+    if (brandSlugs.length) {
+      where.brand = { slug: { in: brandSlugs } };
     }
     if (minPrice !== undefined || maxPrice !== undefined) {
       where.price = {};
@@ -67,7 +89,7 @@ export class ProductsService {
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
-        include: { category: { select: CATEGORY_SELECT } },
+        include: PRODUCT_INCLUDE,
       }),
     ]);
 
@@ -85,7 +107,7 @@ export class ProductsService {
   async findBySlug(slug: string) {
     const product = await this.prisma.product.findFirst({
       where: { slug, isActive: true },
-      include: { category: { select: CATEGORY_SELECT } },
+      include: PRODUCT_INCLUDE,
     });
     if (!product) {
       throw new NotFoundException(`Product "${slug}" not found`);
@@ -93,7 +115,7 @@ export class ProductsService {
     return this.toProductDto(product);
   }
 
-  private toProductDto(p: ProductWithCategory) {
+  private toProductDto(p: ProductWithRelations) {
     return {
       id: p.id,
       name: p.name,
@@ -103,11 +125,14 @@ export class ProductsService {
       comparePrice: p.comparePrice ? p.comparePrice.toNumber() : null,
       stock: p.stock,
       imageUrl: p.imageUrl,
+      images: p.images.map((img) => ({ id: img.id, url: img.url, position: img.position })),
       isActive: p.isActive,
       categoryId: p.categoryId,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
       category: p.category,
+      brandId: p.brandId,
+      brand: p.brand,
     };
   }
 }

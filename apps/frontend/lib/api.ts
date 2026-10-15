@@ -4,39 +4,66 @@
  * Isomorphic: safe to import from server components (public endpoints only —
  * the in-memory token is null on the server) and client components.
  * - Base URL from NEXT_PUBLIC_API_URL (default http://localhost:3000).
- * - Access token lives ONLY in module memory (never localStorage).
+ * - Access token lives ONLY in module memory (never stored).
  * - Every request sends `credentials: 'include'` so the httpOnly
- *   `refresh_token` cookie travels with /auth/* calls.
+ *   `refresh_token` cookie travels with /auth/* calls; a js-cookie copy on
+ *   the storefront domain is the fallback when that cookie is blocked.
  * - On 401 the client calls POST /auth/refresh ONCE and retries the
  *   original request a single time.
  * - Success envelopes `{ success: true, data }` are unwrapped automatically.
  */
 
+import Cookies from "js-cookie";
+
+// Server components run inside the frontend container (Docker), where
+// "localhost" is not the API. API_INTERNAL_URL lets SSR reach the backend service.
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:3000";
+  (typeof window === "undefined" && process.env.API_INTERNAL_URL?.replace(/\/$/, "")) ||
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+  "http://localhost:3000";
 
 let accessToken: string | null = null;
 
-/** Refresh token backup for browsers blocking cross-site cookies (e.g. Safari ITP). */
+/**
+ * Refresh token backup for browsers that block the API's cross-site cookie
+ * (e.g. Safari ITP). Kept in a first-party cookie on the storefront domain.
+ */
 const REFRESH_KEY = "gadgetlax-refresh";
+/** Matches the API's refresh token lifetime (JWT_REFRESH_EXPIRES_IN=7d). */
+const REFRESH_COOKIE_DAYS = 7;
+
+function refreshCookieOptions(): Cookies.CookieAttributes {
+  return {
+    expires: REFRESH_COOKIE_DAYS,
+    path: "/",
+    sameSite: "lax",
+    // Only sent over HTTPS in production; plain http://localhost still works in dev
+    secure: window.location.protocol === "https:",
+  };
+}
 
 function getStoredRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
+  const fromCookie = Cookies.get(REFRESH_KEY);
+  if (fromCookie) return fromCookie;
+  // One-time move for sessions saved by the older localStorage version
   try {
-    return localStorage.getItem(REFRESH_KEY);
+    const legacy = localStorage.getItem(REFRESH_KEY);
+    if (legacy) {
+      localStorage.removeItem(REFRESH_KEY);
+      Cookies.set(REFRESH_KEY, legacy, refreshCookieOptions());
+      return legacy;
+    }
   } catch {
-    return null;
+    /* storage blocked */
   }
+  return null;
 }
 
 export function setStoredRefreshToken(token: string | null) {
   if (typeof window === "undefined") return;
-  try {
-    if (token) localStorage.setItem(REFRESH_KEY, token);
-    else localStorage.removeItem(REFRESH_KEY);
-  } catch {
-    /* ignore */
-  }
+  if (token) Cookies.set(REFRESH_KEY, token, refreshCookieOptions());
+  else Cookies.remove(REFRESH_KEY, { path: "/" });
 }
 
 export function setAccessToken(token: string | null) {
@@ -74,8 +101,25 @@ async function parseJson(res: Response): Promise<unknown> {
   }
 }
 
-/** Call POST /auth/refresh using the httpOnly cookie (or stored token fallback). Returns the new access token or null. */
-export async function refreshAccessToken(): Promise<string | null> {
+/** In-flight refresh, shared so parallel callers never rotate the same token twice. */
+let refreshInFlight: Promise<string | null> | null = null;
+
+/**
+ * Call POST /auth/refresh using the httpOnly cookie (or stored token fallback).
+ * Returns the new access token or null. Concurrent calls share one request,
+ * because each refresh rotates the token and a second call with the old one
+ * would look like token reuse to the API.
+ */
+export function refreshAccessToken(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function doRefresh(): Promise<string | null> {
   try {
     const stored = getStoredRefreshToken();
     const res = await fetch(`${API_URL}/auth/refresh`, {
@@ -105,16 +149,22 @@ export async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-type ApiOptions = Omit<RequestInit, "body"> & { body?: unknown };
+type ApiOptions = Omit<RequestInit, "body"> & {
+  body?: unknown;
+  /** Request timeout in ms. Defaults to 10s; use a longer one for uploads. */
+  timeoutMs?: number;
+};
 
 export async function api<T>(
   path: string,
   options: ApiOptions = {},
   retryOn401 = true
 ): Promise<T> {
+  const isFormData = options.body instanceof FormData;
   const doFetch = async (token: string | null) => {
     const headers = new Headers();
-    if (options.body !== undefined) headers.set("Content-Type", "application/json");
+    // FormData sets its own multipart boundary, so only JSON bodies get a content type.
+    if (options.body !== undefined && !isFormData) headers.set("Content-Type", "application/json");
     if (options.headers) {
       new Headers(options.headers).forEach((v, k) => headers.set(k, v));
     }
@@ -123,9 +173,14 @@ export async function api<T>(
       ...options,
       headers,
       credentials: "include",
-      // Fail fast (10s) so builds and pages never hang on a slow/dead API.
-      signal: AbortSignal.timeout(10000),
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      // Fail fast (10s by default) so pages never hang on a slow/dead API; uploads pass their own limit.
+      signal: AbortSignal.timeout(options.timeoutMs ?? 10000),
+      body:
+        options.body === undefined
+          ? undefined
+          : isFormData
+            ? (options.body as FormData)
+            : JSON.stringify(options.body),
     });
   };
 

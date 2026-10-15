@@ -1,13 +1,14 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Search } from "lucide-react";
+import { Check, ChevronRight, X } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { buildQuery, formatPrice } from "@/lib/utils";
-import type { Category, ProductsResponse, ProductSort } from "@/lib/types";
+import type { Brand, Category, ProductsResponse, ProductSort } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
 import { EmptyState, ErrorState, Pagination, Spinner } from "@/components/ui";
 
@@ -38,6 +39,8 @@ function ProductsContent() {
     () => ({
       search: searchParams.get("q") ?? "",
       category: searchParams.get("category") ?? "",
+      // Several brands can be selected: ?brand=sony,apple
+      brands: (searchParams.get("brand") ?? "").split(",").filter(Boolean),
       minPrice: searchParams.get("minPrice") ?? "",
       maxPrice: searchParams.get("maxPrice") ?? "",
       inStock: searchParams.get("inStock") ?? "",
@@ -63,6 +66,7 @@ function ProductsContent() {
   const queryString = buildQuery({
     search: params.search || undefined,
     category: params.category || undefined,
+    brand: params.brands.length ? params.brands.join(",") : undefined,
     minPrice: params.minPrice || undefined,
     maxPrice: params.maxPrice || undefined,
     inStock: params.inStock === "1" ? "true" : undefined,
@@ -82,7 +86,29 @@ function ProductsContent() {
     staleTime: 10 * 60 * 1000,
   });
 
+  // In a category, only brands that have products there (counts for that category)
+  const brandsQuery = useQuery({
+    queryKey: ["brands", params.category],
+    queryFn: () =>
+      apiClient.get<Brand[]>(
+        params.category ? `/brands?category=${encodeURIComponent(params.category)}` : "/brands",
+      ),
+    staleTime: 10 * 60 * 1000,
+  });
+
   const activeCategory = categoriesQuery.data?.find((c) => c.slug === params.category);
+  // Built from the URL so a brand from another category can still be removed
+  const selectedBrands = params.brands.map((slug) => {
+    const known = brandsQuery.data?.find((b) => b.slug === slug);
+    return { id: known?.id ?? slug, slug, name: known?.name ?? slug };
+  });
+
+  const toggleBrand = (slug: string) => {
+    const next = params.brands.includes(slug)
+      ? params.brands.filter((b) => b !== slug)
+      : [...params.brands, slug];
+    setParam({ brand: next.join(",") });
+  };
 
   const applyPriceFilter = () => {
     setParam({ minPrice: priceMin.trim(), maxPrice: priceMax.trim() });
@@ -101,8 +127,8 @@ function ProductsContent() {
                 href="/products"
                 className={`block py-1 text-sm transition ${
                   !params.category
-                    ? "font-semibold text-blue-600"
-                    : "text-zinc-500 hover:text-blue-600"
+                    ? "font-semibold text-primary-600"
+                    : "text-zinc-500 hover:text-primary-600"
                 }`}
               >
                 All Products
@@ -114,8 +140,8 @@ function ProductsContent() {
                   href={`/products?category=${c.slug}`}
                   className={`block py-1 text-sm transition ${
                     params.category === c.slug
-                      ? "font-semibold text-blue-600"
-                      : "text-zinc-500 hover:text-blue-600"
+                      ? "font-semibold text-primary-600"
+                      : "text-zinc-500 hover:text-primary-600"
                   }`}
                 >
                   {c.name}
@@ -127,6 +153,68 @@ function ProductsContent() {
 
         <div className="border-t border-zinc-200" />
 
+        {/* Shop by brand */}
+        {(brandsQuery.data?.length ?? 0) > 0 && (
+          <>
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-bold text-zinc-900">Shop By Brand</h3>
+                {params.brands.length > 0 && (
+                  <button
+                    onClick={() => setParam({ brand: "" })}
+                    className="text-xs font-medium text-primary-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              {/* One row per brand: name on the left, logo on the right */}
+              <ul className="max-h-80 space-y-1.5 overflow-y-auto p-0.5">
+                {brandsQuery.data!.map((b) => {
+                  const selected = params.brands.includes(b.slug);
+                  return (
+                    <li key={b.id}>
+                      <button
+                        type="button"
+                        onClick={() => toggleBrand(b.slug)}
+                        aria-pressed={selected}
+                        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-left transition ${
+                          selected
+                            ? "bg-primary-50 ring-1 ring-primary-600"
+                            : "bg-white ring-1 ring-zinc-200 hover:ring-primary-300"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                            selected ? "border-primary-600 bg-primary-600 text-white" : "border-zinc-300 bg-white"
+                          }`}
+                        >
+                          {selected && <Check className="h-3 w-3" strokeWidth={3} />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className={`block truncate text-sm ${selected ? "font-semibold text-primary-700" : "text-zinc-700"}`}>
+                            {b.name}
+                          </span>
+                          <span className="block text-[11px] text-zinc-400">
+                            {b.productCount} product{b.productCount === 1 ? "" : "s"}
+                          </span>
+                        </span>
+                        {b.logoUrl && (
+                          <span className="relative h-8 w-14 shrink-0">
+                            <Image src={b.logoUrl} alt="" fill sizes="56px" className="object-contain" />
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div className="border-t border-zinc-200" />
+          </>
+        )}
+
         {/* Stock status */}
         <div>
           <h3 className="mb-3 text-sm font-bold text-zinc-900">Stock Status</h3>
@@ -135,7 +223,7 @@ function ProductsContent() {
               type="checkbox"
               checked={params.inStock === "1"}
               onChange={(e) => setParam({ inStock: e.target.checked ? "1" : "" })}
-              className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-600"
+              className="h-4 w-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-600"
             />
             In stock
           </label>
@@ -154,7 +242,7 @@ function ProductsContent() {
               value={priceMin}
               onChange={(e) => setPriceMin(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && applyPriceFilter()}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-600"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-600"
             />
             <span className="text-zinc-400">—</span>
             <input
@@ -164,7 +252,7 @@ function ProductsContent() {
               value={priceMax}
               onChange={(e) => setPriceMax(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && applyPriceFilter()}
-              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-600"
+              className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-600"
             />
           </div>
           {(params.minPrice || params.maxPrice) && (
@@ -175,7 +263,7 @@ function ProductsContent() {
           )}
           <button
             onClick={applyPriceFilter}
-            className="mt-3 rounded-lg bg-zinc-100 px-5 py-2 text-xs font-bold uppercase tracking-wide text-zinc-700 transition hover:bg-blue-600 hover:text-white"
+            className="mt-3 rounded-lg bg-zinc-100 px-5 py-2 text-xs font-bold uppercase tracking-wide text-zinc-700 transition hover:bg-primary-600 hover:text-white"
           >
             Filter
           </button>
@@ -198,12 +286,18 @@ function ProductsContent() {
       <div className="min-w-0 flex-1">
         {/* Breadcrumb */}
         <nav className="mb-4 flex items-center gap-1.5 text-sm text-zinc-500">
-          <Link href="/" className="hover:text-blue-600">
+          <Link href="/" className="hover:text-primary-600">
             Home
           </Link>
           <ChevronRight className="h-3.5 w-3.5 text-zinc-300" />
           <span className="font-semibold text-zinc-900">
-            {activeCategory ? activeCategory.name : params.search ? `Search: "${params.search}"` : "All Products"}
+            {activeCategory
+              ? activeCategory.name
+              : selectedBrands.length === 1
+                ? selectedBrands[0].name
+                : params.search
+                  ? `Search: "${params.search}"`
+                  : "All Products"}
           </span>
         </nav>
 
@@ -227,8 +321,8 @@ function ProductsContent() {
                   onClick={() => setParam({ limit: String(l) })}
                   className={`px-1 transition ${
                     params.limit === l
-                      ? "font-bold text-blue-600 underline"
-                      : "text-zinc-500 hover:text-blue-600"
+                      ? "font-bold text-primary-600 underline"
+                      : "text-zinc-500 hover:text-primary-600"
                   }`}
                 >
                   {l}
@@ -238,7 +332,7 @@ function ProductsContent() {
             <select
               value={params.sort}
               onChange={(e) => setParam({ sort: e.target.value })}
-              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-blue-600"
+              className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 outline-none focus:border-primary-600"
               aria-label="Sort products"
             >
               {SORTS.map((s) => (
@@ -249,6 +343,23 @@ function ProductsContent() {
             </select>
           </div>
         </div>
+
+        {/* Selected brands */}
+        {selectedBrands.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {selectedBrands.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => toggleBrand(b.slug)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 ring-1 ring-primary-200 hover:bg-primary-100"
+                aria-label={`Remove brand filter ${b.name}`}
+              >
+                {b.name}
+                <X className="h-3 w-3" />
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Results */}
         {productsQuery.isPending ? (
@@ -265,7 +376,7 @@ function ProductsContent() {
             action={
               <button
                 onClick={() => router.push("/products")}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
               >
                 Clear filters
               </button>

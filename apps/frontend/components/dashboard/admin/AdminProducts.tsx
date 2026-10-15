@@ -1,385 +1,292 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, X } from "lucide-react";
+import { Download, Plus, Upload } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
-import { formatPrice, toNumber } from "@/lib/utils";
-import type { Category, Product, ProductsResponse } from "@/lib/types";
+import type { AdminBrand, Category, Product } from "@/lib/types";
 import {
-  EmptyState,
-  ErrorState,
+  Card,
+  CardHead,
+  ErrorBox,
   Field,
-  Spinner,
-  inputClass,
-} from "@/components/ui";
+  Kpi,
+  Loading,
+  Modal,
+  StockBadge,
+  bdNumber,
+  matchesSearch,
+  useAdminSearch,
+} from "./kit";
 
-const productSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers and hyphens"),
-  description: z.string().min(1, "Description is required"),
-  price: z.number().positive("Price must be positive"),
-  comparePrice: z.string().optional(),
-  stock: z.number().int().min(0, "Stock can't be negative"),
-  imageUrl: z.string().url("Must be a valid URL"),
-  categoryId: z.string().min(1, "Category is required"),
-  isActive: z.boolean(),
-});
+interface BulkImportResult {
+  created: number;
+  failed: { row: number; name: string; error: string }[];
+}
 
-type ProductForm = z.infer<typeof productSchema>;
+const BULK_TIMEOUT_MS = 15 * 60 * 1000;
 
-export default function AdminProducts() {
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [stockId, setStockId] = useState<string | null>(null);
-  const [stockValue, setStockValue] = useState("");
-
-  const productsQuery = useQuery({
-    queryKey: ["admin", "products"],
-    queryFn: () => apiClient.get<ProductsResponse>("/products?limit=100"),
+/** All products, including inactive ones; shared with the inventory page. */
+export function useAdminProducts() {
+  return useQuery({
+    queryKey: ["admin", "products", "all"],
+    queryFn: () => apiClient.get<Product[]>("/admin/products"),
   });
-  const categoriesQuery = useQuery({
+}
+
+export function useCategories() {
+  return useQuery({
     queryKey: ["categories"],
     queryFn: () => apiClient.get<Category[]>("/categories"),
   });
+}
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-    queryClient.invalidateQueries({ queryKey: ["products"] });
-    queryClient.invalidateQueries({ queryKey: ["product"] });
-  };
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiClient.del(`/admin/products/${id}`),
-    onSuccess: () => {
-      invalidate();
-      toast.success("Product deactivated");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const stockMutation = useMutation({
-    mutationFn: ({ id, stock }: { id: string; stock: number }) =>
-      apiClient.patch(`/admin/products/${id}/stock`, { stock }),
-    onSuccess: () => {
-      invalidate();
-      setStockId(null);
-      toast.success("Stock updated");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const openCreate = () => {
-    setEditing(null);
-    setShowModal(true);
-  };
-  const openEdit = (p: Product) => {
-    setEditing(p);
-    setShowModal(true);
-  };
-
-  if (productsQuery.isPending) return <Spinner label="Loading products…" />;
-  if (productsQuery.isError)
-    return (
-      <ErrorState
-        message={(productsQuery.error as Error).message}
-        onRetry={() => productsQuery.refetch()}
-      />
-    );
-
+export function ProductThumb({ product }: { product: Pick<Product, "name" | "imageUrl"> }) {
+  const initials = product.name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
-          Products
-        </h1>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
-        >
-          <Plus className="h-4 w-4" />
-          New product
-        </button>
-      </div>
-      <p className="text-sm text-zinc-500">
-        {productsQuery.data.meta.total} active products
-      </p>
-
-      {/* Mobile cards */}
-      <ul className="space-y-3 lg:hidden">
-        {productsQuery.data.items.map((p) => (
-          <li key={p.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
-            <p className="font-medium text-zinc-900">{p.name}</p>
-            <p className="font-mono text-xs text-zinc-500">{p.slug}</p>
-            <div className="mt-2 flex items-center justify-between text-sm">
-              <span className="font-semibold text-zinc-900">{formatPrice(p.price)}</span>
-              <span className="text-zinc-500">Stock: <span className="font-semibold text-zinc-900">{p.stock}</span></span>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => openEdit(p)}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm(`Deactivate "${p.name}"? It will be hidden from the store.`))
-                    deleteMutation.mutate(p.id);
-                }}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-400 ring-1 ring-zinc-300 hover:bg-zinc-100"
-              >
-                <X className="h-3.5 w-3.5" />
-                Deactivate
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl bg-zinc-50 ring-1 ring-zinc-200 lg:block">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
-            <tr>
-              <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Price</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-200">
-            {productsQuery.data.items.map((p) => (
-              <tr key={p.id} className="hover:bg-white">
-                <td className="px-4 py-3">
-                  <p className="font-medium text-zinc-900">{p.name}</p>
-                  <p className="font-mono text-xs text-zinc-500">{p.slug}</p>
-                </td>
-                <td className="px-4 py-3 font-medium">{formatPrice(p.price)}</td>
-                <td className="px-4 py-3">
-                  {stockId === p.id ? (
-                    <span className="flex items-center gap-1">
-                      <input
-                        type="number"
-                        min={0}
-                        value={stockValue}
-                        onChange={(e) => setStockValue(e.target.value)}
-                        className="w-20 rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900"
-                      />
-                      <button
-                        onClick={() =>
-                          stockMutation.mutate({ id: p.id, stock: parseInt(stockValue || "0", 10) })
-                        }
-                        className="rounded bg-blue-600 px-2 py-1 text-xs font-medium text-white"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setStockId(null)}
-                        className="rounded px-2 py-1 text-xs text-zinc-500"
-                        aria-label="Cancel"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setStockId(p.id);
-                        setStockValue(String(p.stock));
-                      }}
-                      className="font-medium text-zinc-900 hover:text-blue-600 hover:underline"
-                      title="Click to update stock"
-                    >
-                      {p.stock}
-                    </button>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openEdit(p)}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Deactivate "${p.name}"? It will be hidden from the store.`))
-                          deleteMutation.mutate(p.id);
-                      }}
-                      className="text-xs font-medium text-rose-400 hover:underline"
-                    >
-                      Deactivate
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-zinc-500">
-        Note: deactivated products are hidden from this list (the public API only
-        returns active products).
-      </p>
-
-      {showModal && (
-        <ProductModal
-          product={editing}
-          categories={categoriesQuery.data ?? []}
-          onClose={() => setShowModal(false)}
-          onSaved={() => {
-            setShowModal(false);
-            invalidate();
-          }}
-        />
+    <div className="prod-thumb">
+      {product.imageUrl ? (
+        <Image src={product.imageUrl} alt="" fill sizes="44px" style={{ objectFit: "cover" }} />
+      ) : (
+        initials
       )}
     </div>
   );
 }
 
-function ProductModal({
-  product,
-  categories,
-  onClose,
-  onSaved,
-}: {
-  product: Product | null;
-  categories: Category[];
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const toast = useToast();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<ProductForm>({
-    resolver: zodResolver(productSchema),
-    defaultValues: product
-      ? {
-          name: product.name,
-          slug: product.slug,
-          description: product.description,
-          price: toNumber(product.price),
-          comparePrice: product.comparePrice != null ? String(toNumber(product.comparePrice)) : "",
-          stock: product.stock,
-          imageUrl: product.imageUrl,
-          categoryId: product.categoryId,
-          isActive: product.isActive,
-        }
-      : { isActive: true, stock: 0 },
+export default function AdminProducts() {
+  const router = useRouter();
+  const search = useAdminSearch();
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState("all");
+  const brandsQuery = useQuery({
+    queryKey: ["admin", "brands"],
+    queryFn: () => apiClient.get<AdminBrand[]>("/admin/brands"),
   });
+  const [showBulk, setShowBulk] = useState(false);
 
-  const saveMutation = useMutation({
-    mutationFn: (values: ProductForm) => {
-      const compare = values.comparePrice?.trim();
-      const body = {
-        ...values,
-        price: Number(values.price),
-        stock: Number(values.stock),
-        comparePrice: compare ? parseFloat(compare) : undefined,
-      };
-      return product
-        ? apiClient.patch<Product>(`/admin/products/${product.id}`, body)
-        : apiClient.post<Product>("/admin/products", body);
-    },
-    onSuccess: () => {
-      toast.success(product ? "Product updated" : "Product created");
-      onSaved();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const productsQuery = useAdminProducts();
+  const categoriesQuery = useCategories();
+
+  if (productsQuery.isPending) return <Loading label="Loading products…" />;
+  if (productsQuery.isError)
+    return <ErrorBox message={(productsQuery.error as Error).message} onRetry={() => productsQuery.refetch()} />;
+
+  const products = productsQuery.data;
+  const categories = categoriesQuery.data ?? [];
+  const active = products.filter((p) => p.isActive);
+  const lowStock = active.filter((p) => p.stock < 10);
+
+  const rows = products.filter(
+    (p) =>
+      (categoryFilter === "all" || p.categoryId === categoryFilter) &&
+      (brandFilter === "all" || (brandFilter === "none" ? !p.brandId : p.brandId === brandFilter)) &&
+      matchesSearch(search, p.name, p.slug, p.category?.name, p.brand?.name),
+  );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-zinc-50 p-6 ring-1 ring-zinc-200">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-zinc-900">
-            {product ? "Edit product" : "New product"}
-          </h2>
-          <button onClick={onClose} className="rounded-full p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700" aria-label="Close">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <form
-          onSubmit={handleSubmit((v) => saveMutation.mutate(v))}
-          className="space-y-4"
-          noValidate
-        >
-          <Field label="Name" error={errors.name?.message}>
-            <input className={inputClass} {...register("name")} />
-          </Field>
-          <Field label="Slug" error={errors.slug?.message}>
-            <input className={inputClass} {...register("slug")} />
-          </Field>
-          <Field label="Description" error={errors.description?.message}>
-            <textarea className={inputClass} rows={3} {...register("description")} />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Price" error={errors.price?.message}>
-              <input type="number" step="0.01" min={0} className={inputClass} {...register("price", { valueAsNumber: true })} />
-            </Field>
-            <Field label="Compare price (optional)" error={errors.comparePrice?.message}>
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                className={inputClass}
-                placeholder="—"
-                {...register("comparePrice")}
-              />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Stock" error={errors.stock?.message}>
-              <input type="number" min={0} className={inputClass} {...register("stock", { valueAsNumber: true })} />
-            </Field>
-            <Field label="Category" error={errors.categoryId?.message}>
-              <select className={inputClass} {...register("categoryId")}>
-                <option value="">Select…</option>
+    <section>
+      <div className="grid kpi-grid">
+        <Kpi label="Total products" value={bdNumber(products.length)} sub="Including inactive" />
+        <Kpi label="Active listings" value={bdNumber(active.length)} sub="Visible in the store" />
+        <Kpi
+          label="Low stock"
+          value={bdNumber(lowStock.length)}
+          sub="Below 10 units"
+          pill={lowStock.length > 0 ? { text: "REORDER", tone: "warn" } : undefined}
+        />
+        <Kpi label="Categories" value={bdNumber(categories.length)} sub="Catalog coverage" />
+      </div>
+
+      <Card>
+        <CardHead
+          title="Product catalog"
+          right={
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <select
+                className="input"
+                style={{ width: "auto", padding: "8px 12px", fontSize: 13 }}
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                aria-label="Filter by category"
+              >
+                <option value="all">All categories</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </select>
-            </Field>
+              <select
+                className="input"
+                style={{ width: "auto", padding: "8px 12px", fontSize: 13 }}
+                value={brandFilter}
+                onChange={(e) => setBrandFilter(e.target.value)}
+                aria-label="Filter by brand"
+              >
+                <option value="all">All brands</option>
+                <option value="none">No brand</option>
+                {(brandsQuery.data ?? []).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <button className="btn sm ghost" onClick={() => setShowBulk(true)}>
+                <Upload />
+                Bulk upload
+              </button>
+              <button className="btn sm" onClick={() => router.push("/admin/products/new")}>
+                <Plus />
+                Add Product
+              </button>
+            </div>
+          }
+        />
+        {rows.length === 0 ? (
+          <div className="empty">{products.length === 0 ? "No products yet" : "No products match"}</div>
+        ) : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Brand</th>
+                  <th>Category</th>
+                  <th className="num">Price</th>
+                  <th className="num">Stock</th>
+                  <th className="num">Images</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((p) => (
+                  <tr key={p.id} className="clickable" onClick={() => router.push(`/admin/products/${p.id}`)}>
+                    <td>
+                      <div className="prod-cell">
+                        <ProductThumb product={p} />
+                        <div>
+                          <div className="pn">{p.name}</div>
+                          <div className="ps mono">{p.slug}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="muted">{p.brand?.name ?? "—"}</td>
+                    <td className="muted">{p.category?.name ?? "—"}</td>
+                    <td className="num">৳{bdNumber(p.price)}</td>
+                    <td className="num">{p.stock}</td>
+                    <td className="num">{p.images?.length ?? 0}</td>
+                    <td>
+                      <StockBadge stock={p.stock} active={p.isActive} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <Field label="Image URL" error={errors.imageUrl?.message}>
-            <input className={inputClass} {...register("imageUrl")} />
-          </Field>
-          <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
-            <input type="checkbox" {...register("isActive")} className="h-4 w-4 rounded text-blue-600" />
-            Active (visible in store)
-          </label>
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-40"
-            >
-              {saveMutation.isPending ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </form>
+        )}
+        <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+          Click a product to edit details, price, stock, visibility and images.
+        </p>
+      </Card>
+
+      {showBulk && <BulkImportModal categories={categories} onClose={() => setShowBulk(false)} />}
+    </section>
+  );
+}
+
+const CSV_TEMPLATE = [
+  "name,slug,description,price,comparePrice,stock,category,brand,isActive,images",
+  "Sony WH-1000XM5,,Noise cancelling headphones,38500,42000,25,audio,sony,true,xm5-front.jpg|xm5-side.jpg",
+  "Anker PowerCore 10000,,Compact power bank,2800,,80,mobile-accessories,anker,true,https://example.com/anker.jpg",
+].join("\n");
+
+function BulkImportModal({ categories, onClose }: { categories: Category[]; onClose: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [csv, setCsv] = useState<File | null>(null);
+  const [images, setImages] = useState<File[]>([]);
+  const [result, setResult] = useState<BulkImportResult | null>(null);
+
+  const importMutation = useMutation({
+    mutationFn: () => {
+      const form = new FormData();
+      if (csv) form.append("csv", csv);
+      images.forEach((f) => form.append("images", f));
+      return apiClient.post<BulkImportResult>("/admin/products/bulk", form, { timeoutMs: BULK_TIMEOUT_MS });
+    },
+    onSuccess: (r) => {
+      setResult(r);
+      if (r.created) {
+        toast.success(`${r.created} product${r.created === 1 ? "" : "s"} created`);
+        queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const downloadTemplate = () => {
+    const url = URL.createObjectURL(new Blob([CSV_TEMPLATE], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "products-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Modal title="Bulk upload products" onClose={onClose}>
+      <div className="card soft mb" style={{ fontSize: 12.5 }}>
+        <span className="muted">
+          One row per product. <b>category</b> is the category slug
+          {categories.length ? ` (${categories.map((c) => c.slug).join(", ")})` : ""}. List <b>images</b> separated by
+          “|” — file names from the selection below, or full https URLs.
+        </span>
       </div>
-    </div>
+      <button className="btn sm ghost mb" onClick={downloadTemplate}>
+        <Download />
+        Download CSV template
+      </button>
+
+      <Field label="Products CSV">
+        <input type="file" accept=".csv,text/csv" onChange={(e) => setCsv(e.target.files?.[0] ?? null)} />
+      </Field>
+      <Field label={`Image files (${images.length} selected)`}>
+        <input type="file" accept="image/*" multiple onChange={(e) => setImages(Array.from(e.target.files ?? []))} />
+      </Field>
+
+      {result && (
+        <div className="card soft mb">
+          <div style={{ fontWeight: 600 }}>
+            Created {result.created} product{result.created === 1 ? "" : "s"}
+            {result.failed.length > 0 && `, ${result.failed.length} failed`}
+          </div>
+          {result.failed.length > 0 && (
+            <ul style={{ marginTop: 8, maxHeight: 180, overflowY: "auto", fontSize: 12, color: "var(--red)", paddingLeft: 16 }}>
+              {result.failed.map((f) => (
+                <li key={`${f.row}-${f.name}`}>
+                  Row {f.row}
+                  {f.name ? ` (${f.name})` : ""}: {f.error}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <button className="btn block" disabled={!csv || importMutation.isPending} onClick={() => importMutation.mutate()}>
+        <Upload />
+        {importMutation.isPending ? "Uploading…" : "Import products"}
+      </button>
+    </Modal>
   );
 }

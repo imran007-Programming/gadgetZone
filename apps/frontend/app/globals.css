@@ -1,12 +1,25 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+  --font-sans: var(--font-poppins), var(--font-taka), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-poppins), var(--font-taka), ui-sans-serif, system-ui, sans-serif;
 
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
+  /* Primary brand palette, matched to the admin dashboard accent (#ff5c38) */
+  --color-primary-50: #fff4f1;
+  --color-primary-100: #ffe5de;
+  --color-primary-200: #ffcbbd;
+  --color-primary-300: #ffa58c;
+  --color-primary-400: #ff7a59;
+  --color-primary-500: #ff6a45;
+  --color-primary-600: #ff5c38;
+  --color-primary-700: #e8431f;
+  --color-primary-800: #c13416;
+  --color-primary-900: #9a2c15;
+  --color-primary-950: #541208;
+
+  --color-accent: #ff5c38;
+  --color-accent-hover: #e8431f;
 
   --animate-fade-up: fade-up 0.6s ease-out both;
   --animate-slide-in-right: slide-in-right 0.25s ease-out both;
@@ -55,7 +68,7 @@ body {
 }
 
 ::selection {
-  background: #2563eb;
+  background: #ff5c38;
   color: #ffffff;
 }
 
@@ -76,12 +89,12 @@ body {
   background: #a1a1aa;
 }
 
-/* Soft blue glow for primary CTAs */
+/* Soft orange glow for primary CTAs */
 .btn-glow {
-  box-shadow: 0 8px 24px -8px rgba(37, 99, 235, 0.5);
+  box-shadow: 0 8px 24px -8px rgba(255, 92, 56, 0.5);
 }
 .btn-glow:hover {
-  box-shadow: 0 10px 32px -6px rgba(37, 99, 235, 0.6);
+  box-shadow: 0 10px 32px -6px rgba(255, 92, 56, 0.6);
 }
 
 /* Subtle dot texture for hero */

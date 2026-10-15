@@ -66,7 +66,13 @@ describe.skipIf(!TEST_DATABASE_URL)('Orders (e2e)', () => {
     Authorization: `Bearer ${token}`,
   });
 
-  beforeAll(async (ctx) => {
+  // Vitest 4 hooks get no skip(); remember the failure and skip each test instead
+  let dbUnavailable = false;
+  beforeEach((ctx) => {
+    if (dbUnavailable) ctx.skip();
+  });
+
+  beforeAll(async () => {
     try {
       const moduleFixture: TestingModule =
         await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -111,7 +117,7 @@ describe.skipIf(!TEST_DATABASE_URL)('Orders (e2e)', () => {
       productBId = productB.id;
     } catch {
       await app?.close().catch(() => undefined);
-      ctx.skip();
+      dbUnavailable = true;
     }
   });
 

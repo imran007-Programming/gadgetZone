@@ -7,12 +7,17 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { RequestUser } from '../auth/strategies/jwt.strategy.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { AdminService } from './admin.service.js';
+import { ProductImportService } from './product-import.service.js';
+import { MAX_IMAGE_BYTES, imageOnlyFilter } from '../common/upload.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { SetStockDto } from './dto/set-stock.dto.js';
@@ -32,7 +37,10 @@ import { QueryUsersDto } from './dto/query-users.dto.js';
 @Controller('admin')
 @Roles('ADMIN')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly productImport: ProductImportService,
+  ) {}
 
   // ------------------------------------------------------------- products
 
@@ -40,6 +48,63 @@ export class AdminController {
   @ApiOperation({ summary: 'Create a product (admin)' })
   createProduct(@Body() dto: CreateProductDto) {
     return this.adminService.createProduct(dto);
+  }
+
+  /**
+   * Bulk import: one CSV ("csv" field) plus any number of image files
+   * ("images" field). CSV rows reference images by file name or by URL.
+   */
+  @Post('products/bulk')
+  @ApiOperation({ summary: 'Bulk-create products from a CSV and image files (admin)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'csv', maxCount: 1 },
+        { name: 'images', maxCount: 1000 },
+      ],
+      { limits: { fileSize: MAX_IMAGE_BYTES } },
+    ),
+  )
+  bulkImport(
+    @UploadedFiles()
+    files: { csv?: Express.Multer.File[]; images?: Express.Multer.File[] },
+  ) {
+    return this.productImport.importCsv(files.csv?.[0], files.images ?? []);
+  }
+
+  @Post('products/:id/images')
+  @ApiOperation({ summary: 'Upload images to a product gallery (admin)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FilesInterceptor('files', 10, {
+      limits: { fileSize: MAX_IMAGE_BYTES },
+      fileFilter: imageOnlyFilter,
+    }),
+  )
+  addProductImages(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return this.adminService.addProductImages(id, files);
+  }
+
+  @Delete('products/:id/images/:imageId')
+  @ApiOperation({ summary: 'Remove one image from a product gallery (admin)' })
+  deleteProductImage(@Param('id') id: string, @Param('imageId') imageId: string) {
+    return this.adminService.deleteProductImage(id, imageId);
+  }
+
+  @Get('products')
+  @ApiOperation({ summary: 'List all products including inactive ones (admin)' })
+  listProducts() {
+    return this.adminService.listProducts();
+  }
+
+  @Get('products/:id')
+  @ApiOperation({ summary: 'Get one product including inactive ones (admin)' })
+  getProduct(@Param('id') id: string) {
+    return this.adminService.getProduct(id);
   }
 
   @Patch('products/:id')
@@ -133,6 +198,18 @@ export class AdminController {
   @ApiOperation({ summary: 'Dashboard stats (admin)' })
   getStats() {
     return this.adminService.getStats();
+  }
+
+  @Get('revenue-by-category')
+  @ApiOperation({ summary: 'Revenue grouped by product category (admin)' })
+  getRevenueByCategory() {
+    return this.adminService.getRevenueByCategory();
+  }
+
+  @Get('orders-by-hour')
+  @ApiOperation({ summary: 'Today orders bucketed by hour (admin)' })
+  getOrdersByHour() {
+    return this.adminService.getOrdersByHour();
   }
 
   @Get('revenue-trend')

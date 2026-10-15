@@ -21,6 +21,8 @@ interface StoredUser {
   role: 'CUSTOMER' | 'ADMIN';
   isActive: boolean;
   refreshTokenHash: string | null;
+  prevRefreshTokenHash: string | null;
+  refreshRotatedAt: Date | null;
   createdAt: Date;
 }
 
@@ -46,6 +48,8 @@ function makeUsersService() {
           id: `user_${seq}`,
           isActive: true,
           refreshTokenHash: null,
+          prevRefreshTokenHash: null,
+          refreshRotatedAt: null,
           createdAt: new Date(),
           ...data,
         };
@@ -55,7 +59,16 @@ function makeUsersService() {
       updateRefreshTokenHash: async (
         id: string,
         refreshTokenHash: string | null,
+        previousHash: string | null = null,
       ): Promise<StoredUser> => {
+        const user = store.get(id);
+        if (!user) throw new Error('user not found in mock');
+        user.refreshTokenHash = refreshTokenHash;
+        user.prevRefreshTokenHash = previousHash;
+        user.refreshRotatedAt = refreshTokenHash ? new Date() : null;
+        return user;
+      },
+      replaceCurrentRefreshTokenHash: async (id: string, refreshTokenHash: string): Promise<StoredUser> => {
         const user = store.get(id);
         if (!user) throw new Error('user not found in mock');
         user.refreshTokenHash = refreshTokenHash;
@@ -216,25 +229,56 @@ describe('AuthService', () => {
       firstRefreshToken = cookies[REFRESH_TOKEN_COOKIE].value;
     });
 
-    it('rotates the refresh token and returns a new access token', async () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** Moves the clock forward (Date only; timers keep working for bcrypt). */
+    const advance = (ms: number) => {
+      vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + ms });
+    };
+
+    it('returns a new access token but keeps a fresh refresh token (no rotation)', async () => {
       const { res, cookies } = makeRes();
-      const result = await authService.refresh(
-        reqWithCookie(firstRefreshToken),
-        res,
-      );
+      const result = await authService.refresh(reqWithCookie(firstRefreshToken), res);
 
       expect(result.accessToken).toBeTruthy();
+      expect(result.refreshToken).toBe(firstRefreshToken);
+      // No new cookie: quick reloads cannot race each other
+      expect(cookies[REFRESH_TOKEN_COOKIE]).toBeUndefined();
+    });
+
+    it('rotates the refresh token once it is older than a day', async () => {
+      advance(25 * 60 * 60 * 1000);
+      const { res, cookies } = makeRes();
+      const result = await authService.refresh(reqWithCookie(firstRefreshToken), res);
+
       const rotated = cookies[REFRESH_TOKEN_COOKIE].value;
       expect(rotated).toBeTruthy();
       expect(rotated).not.toBe(firstRefreshToken);
+      expect(result.refreshToken).toBe(rotated);
     });
 
-    it('rejects a reused (rotated-out) refresh token and revokes the session', async () => {
-      // First refresh rotates the token.
-      const { res: res1 } = makeRes();
-      await authService.refresh(reqWithCookie(firstRefreshToken), res1);
+    it('accepts the pre-rotation token repeatedly within the grace period', async () => {
+      advance(25 * 60 * 60 * 1000);
+      await authService.refresh(reqWithCookie(firstRefreshToken), makeRes().res);
 
-      // Reusing the old token is a reuse attack: 401 + session revoked.
+      // Responses lost (fast reloads): the browser keeps sending the old token
+      const second = await authService.refresh(reqWithCookie(firstRefreshToken), makeRes().res);
+      const third = await authService.refresh(reqWithCookie(firstRefreshToken), makeRes().res);
+      expect(second.accessToken).toBeTruthy();
+      expect(third.accessToken).toBeTruthy();
+
+      // The latest token handed out keeps working
+      const latest = await authService.refresh(reqWithCookie(third.refreshToken), makeRes().res);
+      expect(latest.accessToken).toBeTruthy();
+    });
+
+    it('rejects a rotated-out token after the grace period and revokes the session', async () => {
+      advance(25 * 60 * 60 * 1000);
+      await authService.refresh(reqWithCookie(firstRefreshToken), makeRes().res);
+
+      advance(25 * 60 * 60 * 1000 + 2 * 60 * 1000);
       const { res: res2, cookies } = makeRes();
       await expect(
         authService.refresh(reqWithCookie(firstRefreshToken), res2),

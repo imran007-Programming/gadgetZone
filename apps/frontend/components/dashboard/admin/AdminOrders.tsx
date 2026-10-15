@@ -4,153 +4,314 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
-import { formatPrice } from "@/lib/utils";
-import type { Order, OrderStatus } from "@/lib/types";
-import { EmptyState, ErrorState, Spinner, StatusBadge } from "@/components/ui";
+import type { AdminStats, Order, OrderStatus } from "@/lib/types";
+import {
+  Badge,
+  Card,
+  CardHead,
+  ErrorBox,
+  Kpi,
+  Loading,
+  Modal,
+  OrderBadge,
+  bdNumber,
+  matchesSearch,
+  useAdminSearch,
+} from "./kit";
 
-const ORDER_STATUSES: OrderStatus[] = ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"];
+const FILTERS: { label: string; value: OrderStatus | "ALL" }[] = [
+  { label: "All", value: "ALL" },
+  { label: "Pending", value: "PENDING" },
+  { label: "Paid", value: "PAID" },
+  { label: "Shipped", value: "SHIPPED" },
+  { label: "Delivered", value: "DELIVERED" },
+  { label: "Cancelled", value: "CANCELLED" },
+];
+
+/** Mirrors the API's admin transitions so the modal only offers valid moves. */
+const NEXT_STATUS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING: ["PAID", "CANCELLED"],
+  PAID: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["DELIVERED"],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+export function customerName(o: Order) {
+  return o.user?.name ?? o.guestName ?? o.shippingAddress?.name ?? "Guest";
+}
+
+function paymentLabel(method?: string) {
+  if (!method) return "—";
+  return method.toLowerCase() === "cod" ? "COD" : method.charAt(0).toUpperCase() + method.slice(1);
+}
+
+function orderDate(o: Order) {
+  return new Date(o.createdAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
 
 export default function AdminOrders() {
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState("");
+  const search = useAdminSearch();
+  const [filter, setFilter] = useState<OrderStatus | "ALL">("ALL");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const ordersQuery = useQuery({
-    queryKey: ["admin", "orders", statusFilter],
-    queryFn: () =>
-      apiClient.get<Order[]>(`/admin/orders${statusFilter ? `?status=${statusFilter}` : ""}`),
+    queryKey: ["admin", "orders"],
+    queryFn: () => apiClient.get<Order[]>("/admin/orders"),
+  });
+  const statsQuery = useQuery({
+    queryKey: ["admin", "stats"],
+    queryFn: () => apiClient.get<AdminStats>("/admin/stats"),
   });
 
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: OrderStatus }) =>
-      apiClient.patch<Order>(`/admin/orders/${id}/status`, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
-      toast.success("Order status updated");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  if (ordersQuery.isPending) return <Spinner label="Loading orders…" />;
+  if (ordersQuery.isPending) return <Loading label="Loading orders…" />;
   if (ordersQuery.isError)
-    return (
-      <ErrorState
-        message={(ordersQuery.error as Error).message}
-        onRetry={() => ordersQuery.refetch()}
-      />
-    );
+    return <ErrorBox message={(ordersQuery.error as Error).message} onRetry={() => ordersQuery.refetch()} />;
+
+  const orders = ordersQuery.data;
+  const byStatus = statsQuery.data?.ordersByStatus;
+  const pending = byStatus?.PENDING ?? orders.filter((o) => o.status === "PENDING").length;
+  const shipped = byStatus?.SHIPPED ?? orders.filter((o) => o.status === "SHIPPED").length;
+  const cancelled = byStatus?.CANCELLED ?? orders.filter((o) => o.status === "CANCELLED").length;
+
+  const rows = orders.filter(
+    (o) =>
+      (filter === "ALL" || o.status === filter) &&
+      matchesSearch(search, o.id, customerName(o), o.user?.email, o.guestEmail, o.guestPhone, o.paymentMethod, o.status),
+  );
+  const selected = orders.find((o) => o.id === selectedId) ?? null;
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
-        Orders
-      </h1>
-      <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-zinc-500">Status filter</label>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-900"
-        >
-          <option value="">All</option>
-          {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+    <section>
+      <div className="grid kpi-grid">
+        <Kpi label="Total orders" value={bdNumber(orders.length)} sub="All time" />
+        <Kpi
+          label="Pending"
+          value={bdNumber(pending)}
+          sub="Awaiting payment or processing"
+          pill={pending > 0 ? { text: "ACTION NEEDED", tone: "warn" } : undefined}
+        />
+        <Kpi label="Shipped" value={bdNumber(shipped)} sub="On the way to customers" />
+        <Kpi label="Cancelled" value={bdNumber(cancelled)} sub="Stock restored" />
       </div>
 
-      {ordersQuery.data.length === 0 ? (
-        <EmptyState title="No orders found" />
-      ) : (
-        <>
-          {/* Mobile cards */}
-          <ul className="space-y-3 lg:hidden">
-            {ordersQuery.data.map((o) => (
-              <li key={o.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-sm font-semibold text-zinc-900">
-                    #{o.id.slice(0, 8)}
-                  </span>
-                  <StatusBadge status={o.status} />
-                </div>
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-xs text-zinc-500">
-                    {new Date(o.createdAt).toLocaleDateString()}
-                  </span>
-                  <span className="font-bold text-zinc-900">{formatPrice(o.totalAmount)}</span>
-                </div>
-                <select
-                  value={o.status}
-                  onChange={(e) =>
-                    statusMutation.mutate({ id: o.id, status: e.target.value as OrderStatus })
-                  }
-                  disabled={statusMutation.isPending}
-                  className="mt-3 w-full rounded-lg border border-zinc-300 bg-white px-2 py-1.5 text-xs text-zinc-900"
-                  aria-label={`Update status for order ${o.id.slice(0, 8)}`}
+      <Card>
+        <CardHead
+          title="All orders"
+          right={
+            <div className="chips">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  className={`chip${filter === f.value ? " active" : ""}`}
+                  onClick={() => setFilter(f.value)}
                 >
-                  {ORDER_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </li>
-            ))}
-          </ul>
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-xl bg-zinc-50 ring-1 ring-zinc-200 lg:block">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          }
+        />
+        {rows.length === 0 ? (
+          <div className="empty">{orders.length === 0 ? "No orders yet" : "No orders match this filter"}</div>
+        ) : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3">Order</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Total</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Update</th>
+                  <th>Order</th>
+                  <th>Customer</th>
+                  <th className="num">Items</th>
+                  <th className="num">Total</th>
+                  <th>Payment</th>
+                  <th>Status</th>
+                  <th>Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-200">
-                {ordersQuery.data.map((o) => (
-                  <tr key={o.id} className="hover:bg-white">
-                    <td className="px-4 py-3 font-mono text-xs">#{o.id.slice(0, 8)}</td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">
-                      {new Date(o.createdAt).toLocaleDateString()}
+              <tbody>
+                {rows.map((o) => (
+                  <tr key={o.id} className="clickable" onClick={() => setSelectedId(o.id)}>
+                    <td className="mono">#{o.id.slice(-8).toUpperCase()}</td>
+                    <td className="prod-name">{customerName(o)}</td>
+                    <td className="num">{o.items.reduce((n, i) => n + i.quantity, 0)}</td>
+                    <td className="num">৳{bdNumber(o.totalAmount)}</td>
+                    <td>
+                      <Badge tone="neutral">{paymentLabel(o.paymentMethod)}</Badge>
                     </td>
-                    <td className="px-4 py-3 font-medium">{formatPrice(o.totalAmount)}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={o.status} />
+                    <td>
+                      <OrderBadge status={o.status} />
                     </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={o.status}
-                        onChange={(e) =>
-                          statusMutation.mutate({ id: o.id, status: e.target.value as OrderStatus })
-                        }
-                        disabled={statusMutation.isPending}
-                        className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900"
-                        aria-label={`Update status for order ${o.id.slice(0, 8)}`}
-                      >
-                        {ORDER_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                    <td className="muted">{orderDate(o)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </>
+        )}
+        <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+          Click any row to view the full order and update its status.
+        </p>
+      </Card>
+
+      {selected && <OrderDetail order={selected} onClose={() => setSelectedId(null)} />}
+    </section>
+  );
+}
+
+function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [nextStatus, setNextStatus] = useState<OrderStatus | "">("");
+
+  const statusMutation = useMutation({
+    mutationFn: (status: OrderStatus) => apiClient.patch<Order>(`/admin/orders/${order.id}/status`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
+      setNextStatus("");
+      toast.success("Order status updated");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const steps: { label: string; status: OrderStatus }[] = [
+    { label: "Order placed", status: "PENDING" },
+    { label: "Paid", status: "PAID" },
+    { label: "Shipped", status: "SHIPPED" },
+    { label: "Delivered", status: "DELIVERED" },
+  ];
+  const currentIdx = steps.findIndex((s) => s.status === order.status);
+  const subtotal = order.items.reduce((n, i) => n + i.unitPrice * i.quantity, 0);
+  const discount = order.discountAmount ?? 0;
+  // total = subtotal - discount + shipping, so whatever is left over is shipping
+  const shipping = Math.max(order.totalAmount + discount - subtotal, 0);
+  const email = order.user?.email ?? order.guestEmail;
+  const address = order.shippingAddress;
+  const options = NEXT_STATUS[order.status];
+
+  return (
+    <Modal title={`Order #${order.id.slice(-8).toUpperCase()}`} onClose={onClose}>
+      <div className="card soft mb">
+        <div className="sec-title" style={{ marginBottom: 10 }}>
+          Customer
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName(order)}</div>
+        <div className="muted" style={{ fontSize: 12.5 }}>
+          {[email, order.guestPhone].filter(Boolean).join(" · ") || "No contact details"}
+          {address && (
+            <>
+              <br />
+              {[address.street, address.city, address.postalCode, address.country].filter(Boolean).join(", ")}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="card soft mb">
+        <div className="sec-title" style={{ marginBottom: 10 }}>
+          Items
+        </div>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <tbody>
+              {order.items.map((it) => (
+                <tr key={it.id}>
+                  <td className="prod-name">{it.product?.name ?? "Deleted product"}</td>
+                  <td className="num">×{it.quantity}</td>
+                  <td className="num">৳{bdNumber(it.unitPrice * it.quantity)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="kv">
+          <span className="k">Subtotal</span>
+          <span className="v">৳{bdNumber(subtotal)}</span>
+        </div>
+        {discount > 0 && (
+          <div className="kv">
+            <span className="k">
+              Coupon <span className="mono">{order.couponCode}</span>
+            </span>
+            <span className="v" style={{ color: "var(--green)" }}>
+              −৳{bdNumber(discount)}
+            </span>
+          </div>
+        )}
+        {shipping > 0 && (
+          <div className="kv">
+            <span className="k">Shipping</span>
+            <span className="v">৳{bdNumber(shipping)}</span>
+          </div>
+        )}
+        <div className="kv">
+          <span className="k">Payment</span>
+          <span className="v">{paymentLabel(order.paymentMethod)}</span>
+        </div>
+        <div className="kv">
+          <span className="k">Total</span>
+          <span className="v" style={{ color: "var(--accent-hi)" }}>
+            ৳{bdNumber(order.totalAmount)}
+          </span>
+        </div>
+      </div>
+
+      <div className="card soft mb">
+        <div className="sec-title" style={{ marginBottom: 12 }}>
+          Status timeline
+        </div>
+        {order.status === "CANCELLED" ? (
+          <div className="tl-step cancel">
+            <div className="tl-dot">✕</div>
+            <div>
+              <div className="tl-title">Order cancelled</div>
+              <div className="tl-sub">Stock was restored</div>
+            </div>
+          </div>
+        ) : (
+          steps.map((s, i) => {
+            const cls = i < currentIdx ? "done" : i === currentIdx ? "now" : "";
+            return (
+              <div className={`tl-step ${cls}`} key={s.status}>
+                <div className="tl-dot">{i < currentIdx ? "✓" : i + 1}</div>
+                <div>
+                  <div className="tl-title">{s.label}</div>
+                  <div className="tl-sub">{i === 0 ? orderDate(order) : i === currentIdx ? "Current step" : ""}</div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {options.length > 0 ? (
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <select
+            className="input"
+            value={nextStatus}
+            onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
+            aria-label="New status"
+          >
+            <option value="">Move to…</option>
+            {options.map((s) => (
+              <option key={s} value={s}>
+                {s.charAt(0) + s.slice(1).toLowerCase()}
+              </option>
+            ))}
+          </select>
+          <button
+            className="btn"
+            disabled={!nextStatus || statusMutation.isPending}
+            onClick={() => nextStatus && statusMutation.mutate(nextStatus)}
+          >
+            {statusMutation.isPending ? "Updating…" : "Update"}
+          </button>
+        </div>
+      ) : (
+        <p className="muted" style={{ fontSize: 12.5 }}>
+          This order is {order.status.toLowerCase()}; no further status changes are possible.
+        </p>
       )}
-      <p className="text-xs text-zinc-500">
-        Valid transitions: PENDING → PAID/CANCELLED, PAID → SHIPPED, SHIPPED →
-        DELIVERED. Invalid moves are rejected by the API.
-      </p>
-    </div>
+    </Modal>
   );
 }

@@ -43,6 +43,11 @@ export class QueryProductsDto {
   @IsString()
   category?: string;
 
+  @ApiPropertyOptional({ description: 'Filter by brand slug; comma-separated for several (sony,apple)' })
+  @IsOptional()
+  @IsString()
+  brand?: string;
+
   @ApiPropertyOptional({ description: 'Minimum price' })
   @IsOptional()
   @Type(() => Number)

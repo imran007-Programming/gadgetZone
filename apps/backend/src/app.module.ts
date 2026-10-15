@@ -13,7 +13,13 @@ import { CartModule } from './cart/cart.module.js';
 import { WishlistModule } from './wishlist/wishlist.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { CouponsModule } from './coupons/coupons.module.js';
+import { ReviewsModule } from './reviews/reviews.module.js';
+import { ReturnsModule } from './returns/returns.module.js';
+import { BannersModule } from './banners/banners.module.js';
+import { BrandsModule } from './brands/brands.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 
@@ -34,6 +40,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 5 }]),
     PrismaModule,
+    CloudinaryModule,
     AuthModule,
     UsersModule,
     ProductsModule,
@@ -42,6 +49,11 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     WishlistModule,
     OrdersModule,
     AdminModule,
+    CouponsModule,
+    ReviewsModule,
+    ReturnsModule,
+    BannersModule,
+    BrandsModule,
   ],
   controllers: [AppController],
   providers: [

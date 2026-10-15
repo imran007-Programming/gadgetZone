@@ -41,14 +41,20 @@ export default function ProductCard({ product }: { product: Product }) {
         href={`/products/${product.slug}`}
         className="relative block aspect-square overflow-hidden bg-white"
       >
-        <Image
-          src={product.imageUrl}
-          alt={product.name}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-          className="object-cover transition duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+            className="object-cover transition duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+            No image yet
+          </div>
+        )}
         <div className="absolute right-2.5 top-2.5">
           <WishlistButton product={product} />
         </div>
@@ -74,12 +80,20 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </Link>
       <div className="flex flex-1 flex-col px-4 pb-5 pt-7 text-center">
+        {product.brand && (
+          <Link
+            href={`/brands/${product.brand.slug}`}
+            className="mb-1 text-[11px] font-medium uppercase tracking-widest text-zinc-400 transition hover:text-primary-600"
+          >
+            {product.brand.name}
+          </Link>
+        )}
         <Link href={`/products/${product.slug}`}>
-          <h3 className="line-clamp-2 min-h-[2.6em] text-[15px] font-semibold leading-snug text-zinc-900 transition hover:text-blue-700">
+          <h3 className="line-clamp-2 min-h-[2.6em] text-[15px] font-medium leading-snug text-zinc-800 transition hover:text-primary-700">
             {product.name}
           </h3>
         </Link>
-        <p className="mt-1.5 font-display text-lg font-bold text-blue-600">
+        <p className="mt-1.5 font-display text-lg font-semibold text-primary-600">
           {formatPrice(product.price)}
         </p>
         {hasDiscount && (

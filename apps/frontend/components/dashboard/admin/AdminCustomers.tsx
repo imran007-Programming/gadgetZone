@@ -2,21 +2,55 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, UserCheck, UserX } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
-import { formatPrice } from "@/lib/utils";
-import type { Order, User } from "@/lib/types";
-import { EmptyState, ErrorState, Spinner, StatusBadge } from "@/components/ui";
+import type { AdminStats, Order, User } from "@/lib/types";
+import {
+  Badge,
+  Card,
+  CardHead,
+  ErrorBox,
+  Kpi,
+  Loading,
+  Modal,
+  OrderBadge,
+  PALETTE,
+  Switch,
+  bdNumber,
+  matchesSearch,
+  useAdminSearch,
+} from "./kit";
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+function avatarColor(name: string) {
+  return PALETTE[name.length % PALETTE.length];
+}
+
+function joined(date: string) {
+  return new Date(date).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
 
 export default function AdminCustomers() {
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const search = useAdminSearch();
+  const [selected, setSelected] = useState<User | null>(null);
 
   const usersQuery = useQuery({
     queryKey: ["admin", "users"],
     queryFn: () => apiClient.get<User[]>("/admin/users"),
+  });
+  const statsQuery = useQuery({
+    queryKey: ["admin", "stats"],
+    queryFn: () => apiClient.get<AdminStats>("/admin/stats"),
   });
 
   const toggleMutation = useMutation({
@@ -29,122 +63,158 @@ export default function AdminCustomers() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (usersQuery.isPending) return <Spinner label="Loading customers…" />;
+  if (usersQuery.isPending) return <Loading label="Loading customers…" />;
   if (usersQuery.isError)
-    return (
-      <ErrorState
-        message={(usersQuery.error as Error).message}
-        onRetry={() => usersQuery.refetch()}
-      />
-    );
+    return <ErrorBox message={(usersQuery.error as Error).message} onRetry={() => usersQuery.refetch()} />;
+
+  const customers = usersQuery.data.filter((u) => u.role !== "ADMIN");
+  const activeCount = customers.filter((u) => u.isActive !== false).length;
+  const rows = customers.filter((u) => matchesSearch(search, u.name, u.email));
 
   return (
-    <div className="space-y-4">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
-        Customers
-      </h1>
-      <p className="text-sm text-zinc-500">{usersQuery.data.length} accounts</p>
-      {usersQuery.data.length === 0 ? (
-        <EmptyState title="No customers found" />
-      ) : (
-        <div className="space-y-3">
-          {usersQuery.data.map((u) => (
-            <div key={u.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-100 font-display text-sm font-bold text-zinc-600">
-                    {u.name.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-zinc-900">
-                      {u.name}{" "}
-                      <span className="ml-1 rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
-                        {u.role}
-                      </span>
-                      {!u.isActive && (
-                        <span className="ml-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700">
-                          disabled
-                        </span>
-                      )}
-                    </p>
-                    <p className="truncate text-xs text-zinc-500">{u.email}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setExpanded(expanded === u.id ? null : u.id)}
-                    className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 ring-1 ring-zinc-200 hover:bg-white"
-                  >
-                    {expanded === u.id ? (
-                      <ChevronUp className="h-3.5 w-3.5" />
-                    ) : (
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    )}
-                    {expanded === u.id ? "Hide orders" : "View orders"}
-                  </button>
-                  {u.role !== "ADMIN" && (
-                    <button
-                      onClick={() =>
-                        toggleMutation.mutate({ id: u.id, active: !u.isActive })
-                      }
-                      disabled={toggleMutation.isPending}
-                      className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium ${
-                        u.isActive
-                          ? "text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50"
-                          : "text-emerald-400 ring-1 ring-emerald-400/25 hover:bg-emerald-400/10"
-                      }`}
-                    >
-                      {u.isActive ? (
-                        <UserX className="h-3.5 w-3.5" />
-                      ) : (
-                        <UserCheck className="h-3.5 w-3.5" />
-                      )}
-                      {u.isActive ? "Disable" : "Enable"}
-                    </button>
-                  )}
-                </div>
-              </div>
-              {expanded === u.id && <UserOrders userId={u.id} />}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <section>
+      <div className="grid kpi-grid">
+        <Kpi label="Total customers" value={bdNumber(customers.length)} sub="Registered accounts" />
+        <Kpi
+          label="New this month"
+          value={bdNumber(statsQuery.data?.newCustomers30d ?? 0)}
+          sub="Joined in the last 30 days"
+        />
+        <Kpi label="Active accounts" value={bdNumber(activeCount)} sub="Can log in" />
+        <Kpi
+          label="Disabled"
+          value={bdNumber(customers.length - activeCount)}
+          sub="Login blocked"
+          pill={customers.length - activeCount > 0 ? { text: "BLOCKED", tone: "down" } : undefined}
+        />
+      </div>
+
+      <Card>
+        <CardHead title="Customers" />
+        {rows.length === 0 ? (
+          <div className="empty">{customers.length === 0 ? "No customers yet" : "No customers match"}</div>
+        ) : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th>Joined</th>
+                  <th>Access</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((u) => {
+                  const isActive = u.isActive !== false;
+                  return (
+                    <tr key={u.id} className="clickable" onClick={() => setSelected(u)}>
+                      <td>
+                        <div className="prod-cell">
+                          <div className="rep-avatar" style={{ background: avatarColor(u.name) }}>
+                            {initials(u.name)}
+                          </div>
+                          <div>
+                            <div className="pn">{u.name}</div>
+                            <div className="ps">{u.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{isActive ? <Badge tone="green">Active</Badge> : <Badge tone="red">Disabled</Badge>}</td>
+                      <td className="muted">{joined(u.createdAt)}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                          label={isActive ? `Disable ${u.name}` : `Enable ${u.name}`}
+                          checked={isActive}
+                          disabled={toggleMutation.isPending}
+                          onChange={(next) => toggleMutation.mutate({ id: u.id, active: next })}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+          Click a customer to see their orders. The switch blocks or restores login.
+        </p>
+      </Card>
+
+      {selected && <CustomerOrders user={selected} onClose={() => setSelected(null)} />}
+    </section>
   );
 }
 
-function UserOrders({ userId }: { userId: string }) {
+function CustomerOrders({ user, onClose }: { user: User; onClose: () => void }) {
   const ordersQuery = useQuery({
-    queryKey: ["admin", "user-orders", userId],
-    queryFn: () =>
-      apiClient.get<{ user: User; orders: Order[] }>(
-        `/admin/users/${userId}/orders`
-      ),
+    queryKey: ["admin", "user-orders", user.id],
+    queryFn: () => apiClient.get<{ user: User; orders: Order[] }>(`/admin/users/${user.id}/orders`),
   });
-
-  if (ordersQuery.isPending) return <Spinner label="Loading orders…" />;
-  if (ordersQuery.isError)
-    return (
-      <p className="mt-3 text-xs text-rose-600">
-        {(ordersQuery.error as Error).message}
-      </p>
-    );
-  const orders = ordersQuery.data.orders;
-  if (orders.length === 0)
-    return <p className="mt-3 text-xs text-zinc-500">No orders.</p>;
+  const orders = ordersQuery.data?.orders ?? [];
+  const spent = orders.filter((o) => o.status !== "CANCELLED").reduce((n, o) => n + o.totalAmount, 0);
 
   return (
-    <ul className="mt-3 space-y-1.5 border-t border-zinc-200 pt-3">
-      {orders.map((o) => (
-        <li key={o.id} className="flex items-center justify-between gap-2 text-xs">
-          <span className="font-mono text-zinc-500">#{o.id.slice(0, 8)}</span>
-          <span className="text-zinc-500">
-            {new Date(o.createdAt).toLocaleDateString()}
+    <Modal title={user.name} onClose={onClose}>
+      <div className="card soft mb">
+        <div className="kv">
+          <span className="k">Email</span>
+          <span className="v" style={{ fontWeight: 500 }}>
+            {user.email}
           </span>
-          <span className="font-medium text-zinc-900">{formatPrice(o.totalAmount)}</span>
-          <StatusBadge status={o.status} />
-        </li>
-      ))}
-    </ul>
+        </div>
+        <div className="kv">
+          <span className="k">Joined</span>
+          <span className="v">{joined(user.createdAt)}</span>
+        </div>
+        <div className="kv">
+          <span className="k">Orders</span>
+          <span className="v">{orders.length}</span>
+        </div>
+        <div className="kv">
+          <span className="k">Total spent</span>
+          <span className="v" style={{ color: "var(--accent-hi)" }}>
+            ৳{bdNumber(spent)}
+          </span>
+        </div>
+      </div>
+
+      <div className="sec-title" style={{ marginBottom: 10 }}>
+        Order history
+      </div>
+      {ordersQuery.isPending ? (
+        <Loading />
+      ) : ordersQuery.isError ? (
+        <div className="empty">{(ordersQuery.error as Error).message}</div>
+      ) : orders.length === 0 ? (
+        <div className="empty">No orders yet</div>
+      ) : (
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Date</th>
+                <th className="num">Total</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((o) => (
+                <tr key={o.id}>
+                  <td className="mono">#{o.id.slice(-8).toUpperCase()}</td>
+                  <td className="muted">{joined(o.createdAt)}</td>
+                  <td className="num">৳{bdNumber(o.totalAmount)}</td>
+                  <td>
+                    <OrderBadge status={o.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modal>
   );
 }

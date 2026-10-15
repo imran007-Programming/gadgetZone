@@ -4,206 +4,182 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import type { Category } from "@/lib/types";
-import { ErrorState, Field, Spinner, inputClass } from "@/components/ui";
+import { Card, CardHead, ErrorBox, Field, Kpi, Loading, Modal, bdNumber, matchesSearch, useAdminSearch } from "./kit";
+import { useAdminProducts, useCategories } from "./AdminProducts";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1, "Slug is required").regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers and hyphens"),
+  slug: z
+    .string()
+    .min(1, "Slug is required")
+    .regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers and hyphens"),
   description: z.string().optional(),
 });
+
+type CategoryForm = z.infer<typeof categorySchema>;
 
 export default function AdminCategories() {
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState<Category | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const search = useAdminSearch();
+  // null = closed, "new" = create form, otherwise the category being edited
+  const [editing, setEditing] = useState<Category | "new" | null>(null);
 
-  const categoriesQuery = useQuery({
-    queryKey: ["admin", "categories"],
-    queryFn: () => apiClient.get<Category[]>("/categories"),
-  });
-
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
-    queryClient.invalidateQueries({ queryKey: ["categories"] });
-  };
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<z.infer<typeof categorySchema>>({
-    resolver: zodResolver(categorySchema),
-  });
-
-  const openCreate = () => {
-    setEditing(null);
-    reset({ name: "", slug: "", description: "" });
-    setShowForm(true);
-  };
-  const openEdit = (c: Category) => {
-    setEditing(c);
-    reset({ name: c.name, slug: c.slug, description: c.description ?? "" });
-    setShowForm(true);
-  };
-
-  const saveMutation = useMutation({
-    mutationFn: (values: z.infer<typeof categorySchema>) =>
-      editing
-        ? apiClient.patch<Category>(`/admin/categories/${editing.id}`, values)
-        : apiClient.post<Category>("/admin/categories", values),
-    onSuccess: () => {
-      invalidate();
-      setShowForm(false);
-      toast.success(editing ? "Category updated" : "Category created");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  const categoriesQuery = useCategories();
+  const productsQuery = useAdminProducts();
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.del(`/admin/categories/${id}`),
     onSuccess: () => {
-      invalidate();
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Category deleted");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (categoriesQuery.isPending) return <Spinner label="Loading categories…" />;
+  if (categoriesQuery.isPending) return <Loading label="Loading categories…" />;
   if (categoriesQuery.isError)
-    return (
-      <ErrorState
-        message={(categoriesQuery.error as Error).message}
-        onRetry={() => categoriesQuery.refetch()}
-      />
-    );
+    return <ErrorBox message={(categoriesQuery.error as Error).message} onRetry={() => categoriesQuery.refetch()} />;
+
+  const categories = categoriesQuery.data;
+  const products = productsQuery.data ?? [];
+  const countFor = (id: string) => products.filter((p) => p.categoryId === id).length;
+  const emptyCount = categories.filter((c) => countFor(c.id) === 0).length;
+  const rows = categories.filter((c) => matchesSearch(search, c.name, c.slug, c.description));
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
-          Categories
-        </h1>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
-        >
-          <Plus className="h-4 w-4" />
-          New category
-        </button>
+    <section>
+      <div className="grid kpi-grid">
+        <Kpi label="Categories" value={bdNumber(categories.length)} sub="Catalog sections" />
+        <Kpi label="Products" value={bdNumber(products.length)} sub="Across all categories" />
+        <Kpi
+          label="Avg per category"
+          value={categories.length ? (products.length / categories.length).toFixed(1) : "0"}
+          sub="Products per category"
+        />
+        <Kpi label="Empty" value={bdNumber(emptyCount)} sub="No products yet · deletable" />
       </div>
-      <p className="text-sm text-zinc-500">{categoriesQuery.data.length} categories</p>
 
-      {showForm && (
-        <form
-          onSubmit={handleSubmit((v) => saveMutation.mutate(v))}
-          className="grid gap-4 rounded-xl bg-zinc-50 p-5 ring-1 ring-zinc-200 sm:grid-cols-3"
-          noValidate
-        >
+      <Card>
+        <CardHead
+          title="All categories"
+          right={
+            <button className="btn sm" onClick={() => setEditing("new")}>
+              <Plus />
+              New Category
+            </button>
+          }
+        />
+        {rows.length === 0 ? (
+          <div className="empty">{categories.length === 0 ? "No categories yet" : "No categories match"}</div>
+        ) : (
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Slug</th>
+                  <th>Description</th>
+                  <th className="num">Products</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((c) => {
+                  const count = countFor(c.id);
+                  return (
+                    <tr key={c.id}>
+                      <td className="prod-name">{c.name}</td>
+                      <td className="mono muted">{c.slug}</td>
+                      <td className="muted" style={{ maxWidth: 320 }}>
+                        {c.description || "—"}
+                      </td>
+                      <td className="num">{count}</td>
+                      <td className="num" style={{ whiteSpace: "nowrap" }}>
+                        <button className="btn sm ghost" onClick={() => setEditing(c)}>
+                          <Pencil />
+                          Edit
+                        </button>{" "}
+                        <button
+                          className="btn sm danger"
+                          disabled={count > 0 || deleteMutation.isPending}
+                          title={count > 0 ? "Only empty categories can be deleted" : "Delete category"}
+                          onClick={() => {
+                            if (window.confirm(`Delete category "${c.name}"?`)) deleteMutation.mutate(c.id);
+                          }}
+                        >
+                          <Trash2 />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+          Only categories without products can be deleted.
+        </p>
+      </Card>
+
+      {editing && (
+        <CategoryModal category={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
+      )}
+    </section>
+  );
+}
+
+function CategoryModal({ category, onClose }: { category: Category | null; onClose: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CategoryForm>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: category
+      ? { name: category.name, slug: category.slug, description: category.description ?? "" }
+      : { name: "", slug: "", description: "" },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (values: CategoryForm) =>
+      category
+        ? apiClient.patch<Category>(`/admin/categories/${category.id}`, values)
+        : apiClient.post<Category>("/admin/categories", values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success(category ? "Category updated" : "Category created");
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Modal title={category ? `Edit — ${category.name}` : "New Category"} onClose={onClose}>
+      <form onSubmit={handleSubmit((v) => saveMutation.mutate(v))} noValidate>
+        <div className="form-2col">
           <Field label="Name" error={errors.name?.message}>
-            <input className={inputClass} {...register("name")} />
+            <input {...register("name")} placeholder="Audio" />
           </Field>
           <Field label="Slug" error={errors.slug?.message}>
-            <input className={inputClass} {...register("slug")} />
+            <input className="mono" {...register("slug")} placeholder="audio" />
           </Field>
-          <Field label="Description" error={errors.description?.message}>
-            <input className={inputClass} {...register("description")} />
-          </Field>
-          <div className="flex items-end gap-2 sm:col-span-3">
-            <button
-              type="submit"
-              disabled={isSubmitting || saveMutation.isPending}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-40"
-            >
-              {saveMutation.isPending ? "Saving…" : editing ? "Update" : "Create"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Mobile cards */}
-      <ul className="space-y-3 lg:hidden">
-        {categoriesQuery.data.map((c) => (
-          <li key={c.id} className="rounded-xl bg-zinc-50 p-4 ring-1 ring-zinc-200">
-            <p className="font-medium text-zinc-900">{c.name}</p>
-            <p className="font-mono text-xs text-zinc-500">{c.slug}</p>
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => openEdit(c)}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-600 ring-1 ring-zinc-300 hover:bg-zinc-100"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm(`Delete category "${c.name}"? Only empty categories can be deleted.`))
-                    deleteMutation.mutate(c.id);
-                }}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-rose-400 ring-1 ring-zinc-300 hover:bg-zinc-100"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl bg-zinc-50 ring-1 ring-zinc-200 lg:block">
-        <table className="w-full min-w-[560px] text-left text-sm">
-          <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Slug</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-200">
-            {categoriesQuery.data.map((c) => (
-              <tr key={c.id} className="hover:bg-white">
-                <td className="px-4 py-3 font-medium text-zinc-900">{c.name}</td>
-                <td className="px-4 py-3 font-mono text-xs text-zinc-500">{c.slug}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openEdit(c)}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Delete category "${c.name}"? Only empty categories can be deleted.`))
-                          deleteMutation.mutate(c.id);
-                      }}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-rose-400 hover:underline"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+        </div>
+        <Field label="Description" error={errors.description?.message}>
+          <textarea {...register("description")} placeholder="Headphones, earbuds and speakers" />
+        </Field>
+        <button type="submit" className="btn block" disabled={isSubmitting || saveMutation.isPending}>
+          {saveMutation.isPending ? "Saving…" : category ? "Save Category" : "Create Category"}
+        </button>
+      </form>
+    </Modal>
   );
 }

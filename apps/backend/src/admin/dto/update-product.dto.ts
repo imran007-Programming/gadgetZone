@@ -64,4 +64,9 @@ export class UpdateProductDto {
   @IsString()
   @MinLength(1)
   categoryId?: string;
+
+  @ApiPropertyOptional({ description: 'Brand id; null removes the brand' })
+  @IsOptional()
+  @IsString()
+  brandId?: string | null;
 }

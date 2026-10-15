@@ -49,7 +49,7 @@ export default function DashboardProfilePage() {
       </h1>
       <div className="rounded-xl bg-zinc-50 p-6 ring-1 ring-zinc-200">
         <div className="mb-6 flex items-center gap-4">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 font-display text-2xl font-bold text-blue-700">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 font-display text-2xl font-bold text-primary-700">
             {user.name.charAt(0).toUpperCase()}
           </span>
           <div>

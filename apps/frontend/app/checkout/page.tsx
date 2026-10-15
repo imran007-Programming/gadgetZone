@@ -10,8 +10,8 @@ import { useAuth } from "@/lib/auth";
 import { useCartStore, selectItemCount, selectSubtotal } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/utils";
-import type { Order, ShippingAddress } from "@/lib/types";
-import { Banknote, CheckCircle2 } from "lucide-react";
+import type { CouponPreview, Order, ShippingAddress } from "@/lib/types";
+import { Banknote, CheckCircle2, Tag, X } from "lucide-react";
 import {
   BackLink,
   EmptyState,
@@ -60,6 +60,31 @@ function CheckoutContent() {
   const subtotal = useCartStore(selectSubtotal);
   const clearCart = useCartStore((s) => s.clear);
 
+  // Coupon: previewed against the cart subtotal; the server re-checks it when the order is placed
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<CouponPreview | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const discount = coupon?.discount ?? 0;
+  const total = Math.max(subtotal - discount, 0);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) return;
+    setApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const preview = await apiClient.post<CouponPreview>("/coupons/validate", { code, subtotal });
+      setCoupon(preview);
+      toast.success(`Coupon ${preview.code} applied`);
+    } catch (e) {
+      setCoupon(null);
+      setCouponError(e instanceof ApiError ? e.message : "Could not apply coupon");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
   const {
     register,
     handleSubmit,
@@ -89,7 +114,7 @@ function CheckoutContent() {
           {isAuthenticated ? (
             <button
               onClick={() => router.push(`/dashboard/orders`)}
-              className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+              className="rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
             >
               View my orders
             </button>
@@ -130,7 +155,10 @@ function CheckoutContent() {
           postalCode: "",
           country: "Bangladesh",
         };
-        order = await apiClient.post<Order>("/orders", { shippingAddress });
+        order = await apiClient.post<Order>("/orders", {
+          shippingAddress,
+          couponCode: coupon?.code,
+        });
       } else {
         // Guest: send cart items + contact info.
         order = await apiClient.post<Order>("/orders/guest", {
@@ -142,6 +170,7 @@ function CheckoutContent() {
             productId: i.productId,
             quantity: i.quantity,
           })),
+          couponCode: coupon?.code,
         });
       }
       clearCart();
@@ -183,6 +212,59 @@ function CheckoutContent() {
             </li>
           )}
         </ul>
+
+        {/* Coupon */}
+        <div className="mt-4 border-t border-zinc-200 pt-4">
+          {coupon ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-primary-50 px-4 py-3 ring-1 ring-primary-200">
+              <span className="flex items-center gap-2 text-sm font-semibold text-primary-700">
+                <Tag className="h-4 w-4" />
+                {coupon.code} applied · −{formatPrice(coupon.discount)}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCoupon(null);
+                  setCouponInput("");
+                }}
+                className="rounded-full p-1 text-zinc-500 hover:bg-white hover:text-zinc-800"
+                aria-label="Remove coupon"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value.toUpperCase());
+                    setCouponError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyCoupon();
+                    }
+                  }}
+                  placeholder="Coupon code"
+                  aria-label="Coupon code"
+                  className={`${inputClass} uppercase`}
+                />
+                <button
+                  type="button"
+                  onClick={applyCoupon}
+                  disabled={applyingCoupon || !couponInput.trim()}
+                  className="shrink-0 rounded-xl bg-zinc-900 px-5 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-40"
+                >
+                  {applyingCoupon ? "Checking…" : "Apply"}
+                </button>
+              </div>
+              {couponError && <p className="mt-2 text-sm text-rose-600">{couponError}</p>}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Details form */}
@@ -241,8 +323,8 @@ function CheckoutContent() {
             <p className="mb-2 text-sm font-medium text-zinc-700">
               Payment method
             </p>
-            <div className="flex items-center gap-3 rounded-xl border-2 border-blue-600 bg-blue-50 px-4 py-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600">
+            <div className="flex items-center gap-3 rounded-xl border-2 border-primary-600 bg-primary-50 px-4 py-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600">
                 <Banknote className="h-5 w-5 text-white" />
               </span>
               <div>
@@ -262,15 +344,21 @@ function CheckoutContent() {
 
           <div className="flex items-center justify-between border-t border-zinc-200 pt-4">
             <div>
+              {discount > 0 && (
+                <p className="text-xs text-zinc-500">
+                  <span className="line-through">{formatPrice(subtotal)}</span>{" "}
+                  <span className="font-semibold text-primary-700">−{formatPrice(discount)}</span>
+                </p>
+              )}
               <p className="text-sm text-zinc-500">Total (COD)</p>
               <p className="text-xl font-bold text-zinc-900">
-                {formatPrice(subtotal)}
+                {formatPrice(total)}
               </p>
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-xl bg-blue-600 px-8 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
+              className="rounded-xl bg-primary-600 px-8 py-3 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40"
             >
               {submitting ? "Placing order…" : "Place order"}
             </button>

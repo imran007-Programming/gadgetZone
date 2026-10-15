@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OrderStatus, Prisma } from '@prisma/client';
 import { OrdersService } from './orders.service.js';
 import type { PaymentService } from './payment/payment.service.js';
+import { CouponsService } from '../coupons/coupons.service.js';
 
 const dec = (n: number | string): Prisma.Decimal => new Prisma.Decimal(n);
 
@@ -103,6 +104,11 @@ function makeCreatedOrder(
     userId: 'user_1',
     status,
     totalAmount: total,
+    discountAmount: dec(0),
+    couponId: null,
+    couponCode: null,
+    paymentMethod: 'cod',
+    returnRequests: [],
     shippingAddress: { name: 'Ada' },
     createdAt: new Date(),
     items: items.map((item, i) => ({
@@ -141,7 +147,7 @@ describe('OrdersService.create', () => {
     tx = makeTx();
     prisma = makePrisma(tx);
     payment = makePayment();
-    service = new OrdersService(prisma as never, payment);
+    service = new OrdersService(prisma as never, payment, new CouponsService(prisma as never));
   });
 
   it('creates the order with unit-price snapshots, decrements stock and clears the cart', async () => {
@@ -284,7 +290,7 @@ describe('OrdersService.cancel', () => {
   beforeEach(() => {
     tx = makeTx();
     prisma = makePrisma(tx);
-    service = new OrdersService(prisma as never, makePayment());
+    service = new OrdersService(prisma as never, makePayment(), new CouponsService(prisma as never));
   });
 
   it('cancels a PENDING order and restores stock inside the transaction', async () => {
@@ -361,6 +367,7 @@ describe('OrdersService.pay', () => {
     service = new OrdersService(
       prisma as never,
       { charge } as unknown as PaymentService,
+      new CouponsService(prisma as never),
     );
   });
 

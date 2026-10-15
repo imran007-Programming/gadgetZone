@@ -49,4 +49,9 @@ export class CreateGuestOrderDto {
   @ValidateNested({ each: true })
   @Type(() => GuestOrderItemDto)
   items: GuestOrderItemDto[];
+
+  @ApiPropertyOptional({ example: "EID15" })
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }

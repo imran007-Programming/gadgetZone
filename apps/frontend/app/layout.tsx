@@ -1,14 +1,24 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Noto_Sans_Bengali, Poppins } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import SiteChrome from "@/components/SiteChrome";
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
   display: "swap",
+});
+
+// Poppins has no Taka glyph, so the ৳ in prices falls back to this font.
+// Only the 800 weight is loaded, so the symbol renders heavy wherever it appears.
+const taka = Noto_Sans_Bengali({
+  subsets: ["bengali"],
+  weight: ["800"],
+  variable: "--font-taka",
+  display: "swap",
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {
@@ -23,9 +33,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${poppins.variable} ${taka.variable}`}>
       <body
-        className={`${poppins.variable} flex min-h-screen flex-col bg-zinc-50 font-sans text-zinc-900`}
+        className={`flex min-h-screen flex-col bg-zinc-50 font-sans text-zinc-900`}
       >
         <Providers>
           <SiteChrome>{children}</SiteChrome>

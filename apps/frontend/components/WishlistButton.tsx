@@ -1,7 +1,6 @@
 "use client";
 
 import { Heart } from "lucide-react";
-import confetti from "canvas-confetti";
 import { useWishlistStore, type LocalWishlistItem } from "@/lib/store/wishlist";
 import { useToast } from "@/lib/toast";
 import type { Product } from "@/lib/types";
@@ -59,20 +58,23 @@ export default function WishlistButton({
     const wasActive = active;
 
     // Fire confetti IMMEDIATELY for instant feedback
+    // canvas-confetti is loaded on first use so it stays out of the initial bundle
     if (!wasActive) {
-      const colors = ["#2563eb", "#60a5fa", "#f472b6", "#fbbf24", "#34d399"];
-      confetti({
-        particleCount: 80,
-        spread: 100,
-        startVelocity: 40,
-        origin: { x, y },
-        colors,
-        disableForReducedMotion: true,
+      const colors = ["#ff5c38", "#ff7a59", "#f472b6", "#fbbf24", "#34d399"];
+      import("canvas-confetti").then(({ default: confetti }) => {
+        confetti({
+          particleCount: 80,
+          spread: 100,
+          startVelocity: 40,
+          origin: { x, y },
+          colors,
+          disableForReducedMotion: true,
+        });
+        setTimeout(() => {
+          confetti({ particleCount: 40, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors, disableForReducedMotion: true });
+          confetti({ particleCount: 40, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors, disableForReducedMotion: true });
+        }, 150);
       });
-      setTimeout(() => {
-        confetti({ particleCount: 40, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors, disableForReducedMotion: true });
-        confetti({ particleCount: 40, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors, disableForReducedMotion: true });
-      }, 150);
     }
 
     toggle(normalized).then(() => {
@@ -87,8 +89,8 @@ export default function WishlistButton({
       aria-pressed={active}
       className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm ring-1 backdrop-blur transition ${
         active
-          ? "bg-blue-600 text-white ring-blue-600"
-          : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-blue-600 hover:ring-blue-600/60"
+          ? "bg-primary-600 text-white ring-primary-600"
+          : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-primary-600 hover:ring-primary-600/60"
       } ${className}`}
     >
       <Heart

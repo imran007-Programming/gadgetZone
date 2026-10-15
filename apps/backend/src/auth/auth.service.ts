@@ -14,6 +14,12 @@ import type {
   RefreshTokenPayload,
 } from './strategies/jwt.strategy.js';
 
+/** How long the previous refresh token keeps working after a rotation. */
+const REFRESH_GRACE_MS = 60_000;
+
+/** A refresh token is only rotated once it is older than this. */
+const REFRESH_ROTATE_AFTER_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Name of the httpOnly cookie carrying the refresh token.
  *
@@ -122,11 +128,19 @@ export class AuthService {
     }
     const user = await this.usersService.findById(payload.sub);
     const storedHash = user?.refreshTokenHash ?? null;
-    const matches =
-      storedHash !== null &&
-      (await bcrypt.compare(tokenDigest(presented), storedHash));
+    const digest = tokenDigest(presented);
+    const matchesCurrent =
+      storedHash !== null && (await bcrypt.compare(digest, storedHash));
+    // The token replaced by the last rotation is still accepted for a moment:
+    // a reload or a parallel request can lose the response with the new cookie.
+    const withinGrace =
+      !matchesCurrent &&
+      !!user?.prevRefreshTokenHash &&
+      !!user.refreshRotatedAt &&
+      Date.now() - user.refreshRotatedAt.getTime() < REFRESH_GRACE_MS &&
+      (await bcrypt.compare(digest, user.prevRefreshTokenHash));
 
-    if (!user || !matches) {
+    if (!user || !(matchesCurrent || withinGrace)) {
       // Token reuse detected (or revoked) — nuke the stored hash so the
       // whole session is dead, then reject.
       if (user) {
@@ -137,7 +151,29 @@ export class AuthService {
     }
 
     const accessToken = await this.signAccessToken(user);
-    const refreshToken = await this.issueRefreshToken(user, res); // rotate
+
+    if (withinGrace) {
+      // A retry with the token from just before the last rotation (its response
+      // was lost). Hand out a fresh token, but keep the previous hash and the
+      // original rotation time so the grace window is not extended.
+      const refreshToken = await this.issueRefreshToken(user, res, (hash) =>
+        this.usersService.replaceCurrentRefreshTokenHash(user.id, hash),
+      );
+      return { accessToken, refreshToken };
+    }
+
+    // Rotate at most once a day. Rotating on every call made quick reloads
+    // race each other (each aborted request rotated the token the browser still
+    // held) and log the user out.
+    const ageMs = payload.iat ? Date.now() - payload.iat * 1000 : Infinity;
+    if (ageMs < REFRESH_ROTATE_AFTER_MS) {
+      return { accessToken, refreshToken: presented };
+    }
+
+    // The hash being replaced stays valid for the grace period
+    const refreshToken = await this.issueRefreshToken(user, res, (hash) =>
+      this.usersService.updateRefreshTokenHash(user.id, hash, storedHash),
+    );
     return { accessToken, refreshToken };
   }
 
@@ -185,14 +221,19 @@ export class AuthService {
   }
 
   /** Issues a new refresh token, stores its bcrypt hash, sets the cookie. Returns the raw token. */
-  private async issueRefreshToken(user: User, res: Response): Promise<string> {
+  private async issueRefreshToken(
+    user: User,
+    res: Response,
+    persist: (hash: string) => Promise<unknown> = (hash) =>
+      this.usersService.updateRefreshTokenHash(user.id, hash),
+  ): Promise<string> {
     const payload: RefreshTokenPayload = { sub: user.id, jti: randomUUID() };
     const token = await this.jwtService.signAsync(payload, {
       secret: this.refreshSecret,
       expiresIn: this.refreshExpiresIn,
     });
     const hash = await bcrypt.hash(tokenDigest(token), BCRYPT_ROUNDS);
-    await this.usersService.updateRefreshTokenHash(user.id, hash);
+    await persist(hash);
     res.cookie(REFRESH_TOKEN_COOKIE, token, this.refreshCookieOptions());
     return token;
   }

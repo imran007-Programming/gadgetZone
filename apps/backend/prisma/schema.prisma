@@ -30,11 +30,17 @@ model User {
   isActive       Boolean    @default(true)
   // Phase 2: hashed refresh token for rotation + revocation
   refreshTokenHash String?
+  // Previous refresh token, still accepted for a short grace period after rotation
+  // (a reload can drop the response that carried the new cookie)
+  prevRefreshTokenHash String?
+  refreshRotatedAt     DateTime?
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   cartItems      CartItem[]
   orders         Order[]
   wishlistItems  WishlistItem[]
+  reviews        Review[]
+  returnRequests ReturnRequest[]
 
   @@index([role])
 }
@@ -61,15 +67,34 @@ model Product {
   isActive    Boolean   @default(true)
   categoryId  String
   category    Category  @relation(fields: [categoryId], references: [id])
+  brandId     String?
+  brand       Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   cartItems   CartItem[]
   orderItems  OrderItem[]
   wishlistItems WishlistItem[]
+  images      ProductImage[]
+  reviews     Review[]
+  banners     Banner[]
 
   @@index([slug])
   @@index([categoryId])
+  @@index([brandId])
   @@index([isActive])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  // Cloudinary public_id, needed to delete the asset later
+  publicId  String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId, position])
 }
 
 model CartItem {
@@ -96,6 +121,12 @@ model Order {
   guestPhone      String?
   guestEmail      String?
   paymentMethod   String      @default("cod")
+  // Discount applied at checkout (0 when no coupon). totalAmount is already net of it.
+  discountAmount  Decimal     @default(0) @db.Decimal(10, 2)
+  couponId        String?
+  coupon          Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCode      String?
+  returnRequests  ReturnRequest[]
   createdAt       DateTime    @default(now())
   items           OrderItem[]
 
@@ -125,4 +156,115 @@ model WishlistItem {
 
   @@unique([userId, productId])
   @@index([userId])
+}
+
+enum DiscountType {
+  PERCENT
+  FLAT
+}
+
+model Coupon {
+  id        String       @id @default(cuid())
+  code      String       @unique
+  type      DiscountType
+  // Percent (1–100) or a flat BDT amount, depending on type
+  value     Decimal      @db.Decimal(10, 2)
+  minOrder  Decimal?     @db.Decimal(10, 2)
+  maxUses   Int?
+  usedCount Int          @default(0)
+  expiresAt DateTime?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  orders    Order[]
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  productId String
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  comment   String
+  status    ReviewStatus @default(PENDING)
+  reply     String?
+  repliedAt DateTime?
+  createdAt DateTime     @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId, status])
+  @@index([status])
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+model ReturnRequest {
+  id           String       @id @default(cuid())
+  orderId      String
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason       String
+  details      String?
+  status       ReturnStatus @default(REQUESTED)
+  refundAmount Decimal?     @db.Decimal(10, 2)
+  adminNote    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+/// Homepage carousel slide (image only), managed from the admin dashboard.
+/// Clicking it opens the linked product, or ctaHref when no product is set.
+model Banner {
+  id        String    @id @default(cuid())
+  // Internal name, also used as the image alt text
+  title     String
+  productId String?
+  product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  ctaHref   String?
+  // Cloudinary URL, or a /public path for the original built-in banners
+  imageUrl  String
+  // Cloudinary public_id; null for built-in images that are not on Cloudinary
+  publicId  String?
+  position  Int       @default(0)
+  isActive  Boolean   @default(true)
+  // Optional schedule: shown only between these dates when set
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([isActive, position])
+}
+
+/// Product brand (Sony, Apple, …), managed from the admin dashboard.
+model Brand {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  description  String?
+  // Cloudinary logo; null shows the brand initials instead
+  logoUrl      String?
+  logoPublicId String?
+  // Wide cover image shown at the top of the brand page
+  bannerUrl      String?
+  bannerPublicId String?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  products     Product[]
 }

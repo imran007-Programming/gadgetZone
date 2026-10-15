@@ -9,7 +9,7 @@ import { PaymentResult, PaymentService } from './payment.service.js';
  */
 @Injectable()
 export class MockPaymentService extends PaymentService {
-  async charge(orderId: string, amount: number): Promise<PaymentResult> {
+  async charge(orderId: string, _amount: number): Promise<PaymentResult> {
     await new Promise((resolve) => setTimeout(resolve, 150));
     return {
       success: true,

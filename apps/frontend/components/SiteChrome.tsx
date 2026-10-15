@@ -6,6 +6,7 @@ import ConditionalHeader from "./ConditionalHeader";
 import ConditionalFooter from "./ConditionalFooter";
 import CartDrawer from "./CartDrawer";
 import MobileNav from "./MobileNav";
+import BackToTop from "./BackToTop";
 
 function isDashboardRoute(pathname: string) {
   return (
@@ -38,6 +39,7 @@ export default function SiteChrome({ children }: { children: ReactNode }) {
       <ConditionalFooter />
       <CartDrawer />
       <MobileNav />
+      <BackToTop />
     </>
   );
 }

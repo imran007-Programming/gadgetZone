@@ -29,7 +29,7 @@ export function WishlistContent() {
         action={
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600"
+            className="inline-flex items-center gap-2 rounded-full bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-600"
           >
             <Heart className="h-4 w-4" />
             Discover products
@@ -76,7 +76,7 @@ export function WishlistContent() {
           return (
             <li
               key={item.productId}
-              className="group relative flex flex-col overflow-hidden rounded-2xl bg-zinc-50 ring-1 ring-zinc-200 transition hover:ring-blue-600/40"
+              className="group relative flex flex-col overflow-hidden rounded-2xl bg-zinc-50 ring-1 ring-zinc-200 transition hover:ring-primary-600/40"
             >
               <div className="absolute right-2.5 top-2.5 z-10">
                 <WishlistButton product={item} />
@@ -101,7 +101,7 @@ export function WishlistContent() {
               </Link>
               <div className="flex flex-1 flex-col gap-1.5 p-4">
                 <Link href={`/products/${item.slug}`}>
-                  <h3 className="line-clamp-2 font-display text-sm font-semibold text-zinc-900 hover:text-blue-700">
+                  <h3 className="line-clamp-2 font-display text-sm font-semibold text-zinc-900 hover:text-primary-700">
                     {item.name}
                   </h3>
                 </Link>
@@ -119,7 +119,7 @@ export function WishlistContent() {
                   <button
                     onClick={() => moveToCart(item.productId)}
                     disabled={outOfStock}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:opacity-40"
+                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600 disabled:opacity-40"
                   >
                     <ShoppingCart className="h-4 w-4" />
                     Move to cart
