@@ -116,7 +116,10 @@ export default function AdminCustomers() {
 function UserOrders({ userId }: { userId: string }) {
   const ordersQuery = useQuery({
     queryKey: ["admin", "user-orders", userId],
-    queryFn: () => apiClient.get<Order[]>(`/admin/users/${userId}/orders`),
+    queryFn: () =>
+      apiClient.get<{ user: User; orders: Order[] }>(
+        `/admin/users/${userId}/orders`
+      ),
   });
 
   if (ordersQuery.isPending) return <Spinner label="Loading orders…" />;
@@ -126,12 +129,13 @@ function UserOrders({ userId }: { userId: string }) {
         {(ordersQuery.error as Error).message}
       </p>
     );
-  if (ordersQuery.data.length === 0)
+  const orders = ordersQuery.data.orders;
+  if (orders.length === 0)
     return <p className="mt-3 text-xs text-zinc-500">No orders.</p>;
 
   return (
     <ul className="mt-3 space-y-1.5 border-t border-zinc-200 pt-3">
-      {ordersQuery.data.map((o) => (
+      {orders.map((o) => (
         <li key={o.id} className="flex items-center justify-between gap-2 text-xs">
           <span className="font-mono text-zinc-500">#{o.id.slice(0, 8)}</span>
           <span className="text-zinc-500">
