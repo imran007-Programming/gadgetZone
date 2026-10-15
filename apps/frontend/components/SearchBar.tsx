@@ -79,16 +79,25 @@ export default function SearchBar({ className = "" }: { className?: string }) {
     <div ref={boxRef} className={`relative ${className}`}>
       <form onSubmit={submit} role="search">
         <div className="relative w-full">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => results.length > 0 && setOpen(true)}
             placeholder="Search for products"
-            className="w-full rounded-full border border-zinc-200 bg-zinc-100 py-2.5 pl-11 pr-10 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+            className="w-full rounded-full border border-zinc-200 bg-white py-3 pl-5 pr-14 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
           />
-          {loading && (
-            <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-zinc-400" />
+          {loading ? (
+            <span className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600">
+              <Loader2 className="h-4 w-4 animate-spin text-white" />
+            </span>
+          ) : (
+            <button
+              type="submit"
+              aria-label="Search"
+              className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm transition hover:bg-blue-700"
+            >
+              <Search className="h-4 w-4" />
+            </button>
           )}
         </div>
       </form>
