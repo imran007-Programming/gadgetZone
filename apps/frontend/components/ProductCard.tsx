@@ -36,16 +36,16 @@ export default function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-zinc-200/80 transition duration-300 hover:-translate-y-1 hover:shadow-lg hover:ring-blue-600/40">
+    <div className="group flex flex-col overflow-hidden rounded-[22px] bg-white shadow-[0_2px_16px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_8px_28px_rgba(0,0,0,0.10)]">
       <Link
         href={`/products/${product.slug}`}
-        className="relative block aspect-square overflow-hidden bg-zinc-100"
+        className="relative block aspect-square overflow-hidden bg-white"
       >
         <Image
           src={product.imageUrl}
           alt={product.name}
           fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
           className="object-cover transition duration-500 group-hover:scale-105"
           loading="lazy"
         />
@@ -62,36 +62,31 @@ export default function ProductCard({ product }: { product: Product }) {
             Out of stock
           </span>
         )}
-        {/* Slide-up add-to-cart bar: hidden below, rises on hover (always visible on touch) */}
+        {/* Floating cart button: rises from below on hover (always visible on touch) */}
         {!outOfStock && (
           <button
             onClick={quickAdd}
             aria-label={`Add ${product.name} to cart`}
-            className="absolute inset-x-0 bottom-0 flex translate-y-0 items-center justify-center gap-2 bg-blue-600/95 py-2.5 text-sm font-semibold text-white backdrop-blur transition-transform duration-300 hover:bg-blue-700 lg:translate-y-full lg:group-hover:translate-y-0"
+            className="absolute bottom-0 left-1/2 flex h-12 w-12 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-2xl bg-white text-zinc-800 shadow-[0_6px_20px_rgba(0,0,0,0.14)] transition-all duration-300 hover:bg-zinc-50 lg:translate-y-[160%] lg:opacity-0 lg:group-hover:translate-y-1/2 lg:group-hover:opacity-100"
           >
-            <ShoppingCart className="h-4 w-4 text-white" />
-            Add to Cart
+            <ShoppingCart className="h-5 w-5" />
           </button>
         )}
       </Link>
-      <div className="flex flex-1 flex-col gap-1 p-3.5">
+      <div className="flex flex-1 flex-col px-4 pb-5 pt-7 text-center">
         <Link href={`/products/${product.slug}`}>
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-zinc-900 transition hover:text-blue-700">
+          <h3 className="line-clamp-2 min-h-[2.6em] text-[15px] font-semibold leading-snug text-zinc-900 transition hover:text-blue-700">
             {product.name}
           </h3>
         </Link>
-        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-          <div className="flex flex-col">
-            <span className="font-display text-base font-bold text-blue-700">
-              {formatPrice(product.price)}
-            </span>
-            {hasDiscount && (
-              <span className="text-xs text-zinc-400 line-through">
-                {formatPrice(product.comparePrice!)}
-              </span>
-            )}
-          </div>
-        </div>
+        <p className="mt-1.5 font-display text-lg font-bold text-blue-600">
+          {formatPrice(product.price)}
+        </p>
+        {hasDiscount && (
+          <p className="text-xs text-zinc-400 line-through">
+            {formatPrice(product.comparePrice!)}
+          </p>
+        )}
       </div>
     </div>
   );
