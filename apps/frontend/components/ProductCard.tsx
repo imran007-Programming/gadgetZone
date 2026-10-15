@@ -67,7 +67,7 @@ export default function ProductCard({ product }: { product: Product }) {
           <button
             onClick={quickAdd}
             aria-label={`Add ${product.name} to cart`}
-            className="absolute bottom-0 left-1/2 flex h-12 w-12 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-2xl bg-white text-zinc-800 shadow-[0_6px_20px_rgba(0,0,0,0.14)] transition-all duration-300 hover:bg-zinc-50 lg:translate-y-[160%] lg:opacity-0 lg:group-hover:translate-y-1/2 lg:group-hover:opacity-100"
+            className="absolute bottom-0 left-1/2 flex h-12 w-12 -translate-x-1/2 translate-y-1/4 items-center justify-center rounded-2xl bg-white text-zinc-800 shadow-[0_6px_20px_rgba(0,0,0,0.14)] transition-all duration-300 hover:bg-zinc-50 lg:translate-y-[160%] lg:opacity-0 lg:group-hover:translate-y-1/4 lg:group-hover:opacity-100"
           >
             <ShoppingCart className="h-5 w-5" />
           </button>
