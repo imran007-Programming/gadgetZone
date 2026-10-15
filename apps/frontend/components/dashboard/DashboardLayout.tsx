@@ -119,7 +119,7 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
   );
 
   return (
-    <div className="min-h-[calc(100vh-8rem)]">
+    <div className="min-h-screen bg-zinc-50">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-zinc-200 bg-white lg:flex">
         {brand}
@@ -160,17 +160,25 @@ export default function DashboardLayout({ title, items, children }: DashboardLay
 
       {/* Content column */}
       <div className="lg:pl-64">
-        {/* Mobile topbar */}
-        <div className="sticky top-16 z-20 flex items-center gap-3 border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
-          <button
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open dashboard menu"
-            className="rounded-lg p-2 text-zinc-600 ring-1 ring-zinc-200 transition hover:bg-zinc-100"
+        {/* Dashboard navbar (all screens) */}
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open dashboard menu"
+              className="rounded-lg p-2 text-zinc-600 ring-1 ring-zinc-200 transition hover:bg-zinc-100 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <span className="font-display text-sm font-bold text-zinc-900">{title}</span>
+          </div>
+          <Link
+            href="/"
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-600 ring-1 ring-blue-200 transition hover:bg-blue-50"
           >
-            <Menu className="h-5 w-5" />
-          </button>
-          <span className="font-display text-sm font-bold text-zinc-900">{title}</span>
-        </div>
+            ← Back to store
+          </Link>
+        </header>
         <div className="p-4 sm:p-6">{children}</div>
       </div>
     </div>
