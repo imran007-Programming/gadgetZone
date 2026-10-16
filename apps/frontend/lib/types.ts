@@ -12,6 +12,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  /** Mobile number from the profile (01XXXXXXXXX), if set. */
+  phone?: string | null;
   role: Role;
   createdAt: string;
   /** Present on admin user listings (enable/disable). */
@@ -44,6 +46,13 @@ export interface SiteSettings {
   announcement: string;
   announcementLink: string;
   supportPhone: string;
+  /** Checkout delivery charges (BDT); Dhaka district counts as inside Dhaka. */
+  deliveryFeeInsideDhaka: number;
+  deliveryFeeOutsideDhaka: number;
+  /** Outside Dhaka the charge is paid in advance by bKash / Nagad (when a number is set). */
+  advanceOutsideDhaka: boolean;
+  bkashNumber: string;
+  nagadNumber: string;
 }
 
 export interface ProductImage {
@@ -152,10 +161,18 @@ export interface Order {
   guestEmail?: string | null;
   createdAt: string;
   items: OrderItem[];
-  user?: { id: string; name: string; email: string } | null;
+  user?: { id: string; name: string; email: string; phone?: string | null } | null;
   /** Coupon discount already taken off totalAmount (0 when none). */
   discountAmount?: number;
   couponCode?: string | null;
+  /** Delivery charge included in totalAmount. */
+  shippingFee?: number;
+  shippingZone?: "inside_dhaka" | "outside_dhaka" | null;
+  /** bKash / Nagad Transaction ID for an advance delivery charge. */
+  transactionId?: string | null;
+  notes?: string | null;
+  /** Billing contact when the order shipped to a different address. */
+  billingAddress?: { name: string; phone: string; street: string; district: string } | null;
   /** Latest return request for this order, if any (customer order endpoints). */
   returnRequest?: CustomerReturn | null;
 }

@@ -465,3 +465,11 @@
 @media (max-width: 760px) { .adm .brand-grid { grid-template-columns: 1fr; } }
 .adm .brand-cover-preview { position: relative; aspect-ratio: 5 / 1; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #27272a, #0b0b0d); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
 .adm .brand-card-cover { position: relative; aspect-ratio: 5 / 1; margin: -18px -18px 0; border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; }
+
+/* order detail modal: details left, status timeline + actions right */
+.adm .order-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.adm .order-side { position: sticky; top: 0; }
+@media (max-width: 760px) {
+  .adm .order-grid { grid-template-columns: 1fr; }
+  .adm .order-side { position: static; }
+}

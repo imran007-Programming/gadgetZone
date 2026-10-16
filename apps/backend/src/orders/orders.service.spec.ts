@@ -61,6 +61,10 @@ function makeTx() {
     product: {
       update: vi.fn().mockResolvedValue({}),
     },
+    // null = no saved settings yet, so the schema defaults apply (60 / 99, no advance)
+    siteSetting: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
   };
 }
 
@@ -108,6 +112,11 @@ function makeCreatedOrder(
     couponId: null,
     couponCode: null,
     paymentMethod: 'cod',
+    shippingFee: dec(0),
+    shippingZone: null,
+    transactionId: null,
+    notes: null,
+    billingAddress: null,
     returnRequests: [],
     shippingAddress: { name: 'Ada' },
     createdAt: new Date(),
@@ -325,6 +334,80 @@ describe('OrdersService.create', () => {
       /no longer available/,
     );
     expect(tx.order.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('OrdersService.create — delivery charge', () => {
+  let tx: Tx;
+  let service: OrdersService;
+  const OUTSIDE = {
+    shippingAddress: {
+      name: 'Ada',
+      phone: '01712345678',
+      street: 'House 12, Road 5',
+      district: 'Lakshmipur',
+      upazila: 'Lakshmipur Sadar',
+    },
+  };
+  const createData = () =>
+    (tx.order.create.mock.calls[0][0] as { data: Record<string, unknown> }).data;
+
+  beforeEach(() => {
+    tx = makeTx();
+    const prisma = makePrisma(tx);
+    service = new OrdersService(prisma as never, makePayment(), new CouponsService(prisma as never));
+    tx.cartItem.findMany.mockResolvedValue([makeCartItem(makeProduct(), 2)]);
+    tx.order.create.mockResolvedValue(makeCreatedOrder([], dec('51.00')));
+  });
+
+  it('adds the inside-Dhaka charge to the total for Dhaka district', async () => {
+    await service.create('user_1', SHIPPING);
+    const data = createData();
+    expect((data.totalAmount as Prisma.Decimal).toNumber()).toBe(51 + 60);
+    expect((data.shippingFee as Prisma.Decimal).toNumber()).toBe(60);
+    expect(data.shippingZone).toBe('inside_dhaka');
+  });
+
+  it('uses the admin-set outside-Dhaka charge and stores notes', async () => {
+    tx.siteSetting.findUnique.mockResolvedValue({
+      deliveryFeeInsideDhaka: 70,
+      deliveryFeeOutsideDhaka: 130,
+      advanceOutsideDhaka: false,
+      bkashNumber: '',
+      nagadNumber: '',
+    });
+    await service.create('user_1', { ...OUTSIDE, notes: 'Call first' });
+    const data = createData();
+    expect((data.totalAmount as Prisma.Decimal).toNumber()).toBe(51 + 130);
+    expect(data.shippingZone).toBe('outside_dhaka');
+    expect(data.notes).toBe('Call first');
+  });
+
+  it('requires a Transaction ID outside Dhaka when an advance number is set', async () => {
+    tx.siteSetting.findUnique.mockResolvedValue({
+      deliveryFeeInsideDhaka: 60,
+      deliveryFeeOutsideDhaka: 99,
+      advanceOutsideDhaka: true,
+      bkashNumber: '01700000000',
+      nagadNumber: '',
+    });
+    await expect(service.create('user_1', OUTSIDE)).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.order.create).not.toHaveBeenCalled();
+
+    await service.create('user_1', { ...OUTSIDE, transactionId: 'ABC123XYZ' });
+    expect(createData().transactionId).toBe('ABC123XYZ');
+  });
+
+  it('does not ask for a Transaction ID inside Dhaka', async () => {
+    tx.siteSetting.findUnique.mockResolvedValue({
+      deliveryFeeInsideDhaka: 60,
+      deliveryFeeOutsideDhaka: 99,
+      advanceOutsideDhaka: true,
+      bkashNumber: '01700000000',
+      nagadNumber: '',
+    });
+    await service.create('user_1', SHIPPING);
+    expect(createData().transactionId).toBeNull();
   });
 });
 

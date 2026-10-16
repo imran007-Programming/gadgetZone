@@ -15,6 +15,9 @@ export class SafeUserDto {
   @ApiProperty()
   name: string;
 
+  @ApiProperty({ nullable: true, example: '01712345678' })
+  phone: string | null;
+
   @ApiProperty({ enum: ['ADMIN', 'CUSTOMER'] })
   role: Role;
 
@@ -27,6 +30,7 @@ export function toSafeUser(user: User): SafeUserDto {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone ?? null,
     role: user.role as Role,
     createdAt: user.createdAt,
   };

@@ -195,7 +195,8 @@ export function Modal({
   title: string;
   onClose: () => void;
   children: ReactNode;
-  wide?: boolean;
+  /** true = 720px; a number sets the max width in px */
+  wide?: boolean | number;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -210,7 +211,7 @@ export function Modal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal" role="dialog" aria-modal="true" style={wide ? { maxWidth: 720 } : undefined}>
+      <div className="modal" role="dialog" aria-modal="true" style={wide ? { maxWidth: typeof wide === "number" ? wide : 720 } : undefined}>
         <div className="modal-head">
           <h3>{title}</h3>
           <button className="modal-x" onClick={onClose} aria-label="Close">

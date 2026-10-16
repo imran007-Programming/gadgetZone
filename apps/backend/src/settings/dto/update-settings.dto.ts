@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
 
 /** Partial update of the storefront settings — every field optional. */
 export class UpdateSettingsDto {
@@ -43,4 +43,35 @@ export class UpdateSettingsDto {
   @IsString()
   @MaxLength(30)
   supportPhone?: string;
+
+  @ApiPropertyOptional({ example: 60, description: 'Delivery charge inside Dhaka (BDT)' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(5000)
+  deliveryFeeInsideDhaka?: number;
+
+  @ApiPropertyOptional({ example: 99, description: 'Delivery charge outside Dhaka (BDT)' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(5000)
+  deliveryFeeOutsideDhaka?: number;
+
+  @ApiPropertyOptional({ example: true, description: 'Outside Dhaka: delivery charge paid in advance by bKash / Nagad' })
+  @IsOptional()
+  @IsBoolean()
+  advanceOutsideDhaka?: boolean;
+
+  @ApiPropertyOptional({ example: '01XXXXXXXXX', description: 'bKash number for advance payments (empty = none)' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^(01[3-9]\d{8})?$/, { message: 'bKash number must be 01XXXXXXXXX' })
+  bkashNumber?: string;
+
+  @ApiPropertyOptional({ example: '01XXXXXXXXX', description: 'Nagad number for advance payments (empty = none)' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^(01[3-9]\d{8})?$/, { message: 'Nagad number must be 01XXXXXXXXX' })
+  nagadNumber?: string;
 }

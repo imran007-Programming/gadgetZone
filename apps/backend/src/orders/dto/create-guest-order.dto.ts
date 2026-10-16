@@ -20,6 +20,7 @@ import {
   IsStreetAddress,
   trimToUndefined,
 } from './address-fields.js';
+import { CheckoutExtrasDto } from './checkout-extras.js';
 
 export class GuestOrderItemDto {
   @ApiProperty()
@@ -33,7 +34,7 @@ export class GuestOrderItemDto {
   quantity: number;
 }
 
-export class CreateGuestOrderDto {
+export class CreateGuestOrderDto extends CheckoutExtrasDto {
   @ApiProperty({ example: 'Rahim Uddin' })
   @IsPersonName()
   name: string;

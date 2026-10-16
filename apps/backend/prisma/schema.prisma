@@ -25,6 +25,8 @@ model User {
   email                String          @unique
   passwordHash         String
   name                 String
+  /// Bangladeshi mobile (01XXXXXXXXX), set from the profile page
+  phone                String?
   role                 Role            @default(CUSTOMER)
   // Phase 5: admins can disable accounts; disabled users cannot log in
   isActive             Boolean         @default(true)
@@ -64,18 +66,26 @@ model Category {
 
 /// Single-row storefront settings (id "default"), edited in Admin → Site settings.
 model SiteSetting {
-  id               String   @id @default("default")
-  topbarEnabled    Boolean  @default(true)
+  id                      String   @id @default("default")
+  topbarEnabled           Boolean  @default(true)
   /// Left side of the top bar, e.g. "Corporate & Wholesale"
-  topbarLeftTitle  String   @default("Corporate & Wholesale")
-  topbarLeftText   String   @default("Get Special Business Pricing")
-  topbarLeftLink   String   @default("/help")
+  topbarLeftTitle         String   @default("Corporate & Wholesale")
+  topbarLeftText          String   @default("Get Special Business Pricing")
+  topbarLeftLink          String   @default("/help")
   /// Center of the top bar: coupon or announcement (hidden when empty)
-  announcement     String   @default("")
-  announcementLink String   @default("")
+  announcement            String   @default("")
+  announcementLink        String   @default("")
   /// Right side of the top bar
-  supportPhone     String   @default("")
-  updatedAt        DateTime @updatedAt
+  supportPhone            String   @default("")
+  /// Checkout delivery charges (BDT); Dhaka district counts as inside Dhaka
+  deliveryFeeInsideDhaka  Int      @default(60)
+  deliveryFeeOutsideDhaka Int      @default(99)
+  /// Outside Dhaka the delivery charge is paid in advance by bKash / Nagad
+  /// (only when at least one number below is set)
+  advanceOutsideDhaka     Boolean  @default(true)
+  bkashNumber             String   @default("")
+  nagadNumber             String   @default("")
+  updatedAt               DateTime @updatedAt
 }
 
 model Product {
@@ -149,6 +159,15 @@ model Order {
   couponId        String?
   coupon          Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
   couponCode      String?
+  /// Delivery charge included in totalAmount; zone is "inside_dhaka" or "outside_dhaka"
+  shippingFee     Decimal         @default(0) @db.Decimal(10, 2)
+  shippingZone    String?
+  /// bKash / Nagad Transaction ID for the advance delivery charge
+  transactionId   String?
+  /// Customer's order notes
+  notes           String?
+  /// Billing contact when the order ships to a different address (null = same as shipping)
+  billingAddress  Json?
   returnRequests  ReturnRequest[]
   createdAt       DateTime        @default(now())
   items           OrderItem[]

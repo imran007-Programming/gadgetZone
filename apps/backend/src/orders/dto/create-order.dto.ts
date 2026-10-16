@@ -15,6 +15,7 @@ import {
   IsPersonName,
   IsStreetAddress,
 } from './address-fields.js';
+import { CheckoutExtrasDto } from './checkout-extras.js';
 
 export class ShippingAddressDto {
   @ApiProperty({ example: 'Aarav Sharma' })
@@ -51,7 +52,7 @@ export class ShippingAddressDto {
   country?: string;
 }
 
-export class CreateOrderDto {
+export class CreateOrderDto extends CheckoutExtrasDto {
   @ApiProperty({ type: ShippingAddressDto })
   @IsDefined()
   @ValidateNested()

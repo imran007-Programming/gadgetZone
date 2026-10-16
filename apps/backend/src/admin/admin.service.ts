@@ -39,7 +39,7 @@ const ADMIN_ORDER_INCLUDE = {
       },
     },
   },
-  user: { select: { id: true, email: true, name: true } },
+  user: { select: { id: true, email: true, name: true, phone: true } },
 } as const;
 
 type AdminOrder = Prisma.OrderGetPayload<{ include: typeof ADMIN_ORDER_INCLUDE }>;
@@ -62,6 +62,7 @@ const SAFE_USER_SELECT = {
   id: true,
   email: true,
   name: true,
+  phone: true,
   role: true,
   isActive: true,
   createdAt: true,
@@ -740,6 +741,11 @@ export class AdminService {
       paymentMethod: order.paymentMethod,
       discountAmount: order.discountAmount.toNumber(),
       couponCode: order.couponCode,
+      shippingFee: order.shippingFee.toNumber(),
+      shippingZone: order.shippingZone,
+      transactionId: order.transactionId,
+      notes: order.notes,
+      billingAddress: order.billingAddress,
       guestName: order.guestName,
       guestPhone: order.guestPhone,
       guestEmail: order.guestEmail,

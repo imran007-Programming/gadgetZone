@@ -119,13 +119,15 @@ export class OrdersService {
       }
 
       const { coupon, discount } = await this.applyCoupon(tx, dto.couponCode, total);
+      const delivery = await this.deliveryFor(tx, shippingAddress.district, dto.transactionId);
 
       const created = await tx.order.create({
         data: {
           userId,
           status: OrderStatus.PENDING,
-          totalAmount: total.minus(discount),
+          totalAmount: total.minus(discount).plus(delivery.fee),
           discountAmount: discount,
+          ...this.checkoutExtras(delivery, dto),
           couponId: coupon?.id ?? null,
           couponCode: coupon?.code ?? null,
           shippingAddress: shippingAddress as unknown as Prisma.InputJsonValue,
@@ -201,13 +203,15 @@ export class OrdersService {
       }
 
       const { coupon, discount } = await this.applyCoupon(tx, dto.couponCode, total);
+      const delivery = await this.deliveryFor(tx, shippingAddress.district, dto.transactionId);
 
       const created = await tx.order.create({
         data: {
           userId: null,
           status: OrderStatus.PENDING,
-          totalAmount: total.minus(discount),
+          totalAmount: total.minus(discount).plus(delivery.fee),
           discountAmount: discount,
+          ...this.checkoutExtras(delivery, dto),
           couponId: coupon?.id ?? null,
           couponCode: coupon?.code ?? null,
           paymentMethod: 'cod',
@@ -311,6 +315,41 @@ export class OrdersService {
   }
 
   /** Validates an optional coupon against the order subtotal inside the transaction. */
+  /**
+   * Delivery charge for the shipping district (Dhaka district = inside Dhaka),
+   * from Admin → Site settings. Outside Dhaka the charge is paid in advance by
+   * bKash / Nagad when the store has set a number, so a Transaction ID is required.
+   */
+  private async deliveryFor(tx: Prisma.TransactionClient, district: string, transactionId?: string) {
+    const settings = await tx.siteSetting.findUnique({ where: { id: 'default' } });
+    const inside = district === 'Dhaka';
+    const fee = new Prisma.Decimal(
+      inside ? (settings?.deliveryFeeInsideDhaka ?? 60) : (settings?.deliveryFeeOutsideDhaka ?? 99),
+    );
+    const advance =
+      !inside && (settings?.advanceOutsideDhaka ?? true) && !!(settings?.bkashNumber || settings?.nagadNumber);
+    if (advance && !transactionId) {
+      throw new BadRequestException('Enter the bKash / Nagad Transaction ID for the advance delivery charge');
+    }
+    return { fee, zone: inside ? 'inside_dhaka' : 'outside_dhaka' };
+  }
+
+  /** Order columns for the delivery charge, notes, Transaction ID and billing contact. */
+  private checkoutExtras(
+    delivery: { fee: Prisma.Decimal; zone: string },
+    dto: { notes?: string; transactionId?: string; billingAddress?: object },
+  ) {
+    return {
+      shippingFee: delivery.fee,
+      shippingZone: delivery.zone,
+      notes: dto.notes ?? null,
+      transactionId: dto.transactionId ?? null,
+      ...(dto.billingAddress && {
+        billingAddress: { ...dto.billingAddress, country: 'Bangladesh' } as Prisma.InputJsonValue,
+      }),
+    };
+  }
+
   private async applyCoupon(tx: Prisma.TransactionClient, code: string | undefined, subtotal: Prisma.Decimal) {
     if (!code?.trim()) return { coupon: null, discount: new Prisma.Decimal(0) };
     const coupon = await this.coupons.findApplicable(code, subtotal, tx);
@@ -334,6 +373,11 @@ export class OrdersService {
       discountAmount: order.discountAmount.toNumber(),
       couponCode: order.couponCode,
       paymentMethod: order.paymentMethod,
+      shippingFee: order.shippingFee.toNumber(),
+      shippingZone: order.shippingZone,
+      transactionId: order.transactionId,
+      notes: order.notes,
+      billingAddress: order.billingAddress,
       shippingAddress: order.shippingAddress,
       createdAt: order.createdAt,
       returnRequest: order.returnRequests[0]

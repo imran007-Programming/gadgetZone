@@ -22,6 +22,11 @@ export class UsersService {
     return this.prisma.user.create({ data });
   }
 
+  /** Profile edit by the user: name and mobile (null clears the mobile). */
+  updateProfile(id: string, data: { name?: string; phone?: string | null }): Promise<User> {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
   /**
    * Stores the current refresh token hash. previousHash keeps the token it
    * replaced usable for a short grace period; passing null for both revokes

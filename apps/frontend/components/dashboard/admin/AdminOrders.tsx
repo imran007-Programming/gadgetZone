@@ -42,6 +42,11 @@ export function customerName(o: Order) {
   return o.user?.name ?? o.guestName ?? o.shippingAddress?.name ?? "Guest";
 }
 
+/** Contact mobile: the number typed at checkout, else the account's profile number. */
+export function customerPhone(o: Order) {
+  return o.guestPhone ?? o.shippingAddress?.phone ?? o.user?.phone ?? null;
+}
+
 function paymentLabel(method?: string) {
   if (!method) return "—";
   return method.toLowerCase() === "cod" ? "COD" : method.charAt(0).toUpperCase() + method.slice(1);
@@ -78,7 +83,16 @@ export default function AdminOrders() {
   const rows = orders.filter(
     (o) =>
       (filter === "ALL" || o.status === filter) &&
-      matchesSearch(search, o.id, customerName(o), o.user?.email, o.guestEmail, o.guestPhone, o.paymentMethod, o.status),
+      matchesSearch(
+        search,
+        o.id,
+        customerName(o),
+        o.user?.email,
+        o.guestEmail,
+        o.guestPhone,
+        o.paymentMethod,
+        o.status,
+      ),
   );
   const selected = orders.find((o) => o.id === selectedId) ?? null;
 
@@ -133,7 +147,14 @@ export default function AdminOrders() {
                 {rows.map((o) => (
                   <tr key={o.id} className="clickable" onClick={() => setSelectedId(o.id)}>
                     <td className="mono">#{o.id.slice(-8).toUpperCase()}</td>
-                    <td className="prod-name">{customerName(o)}</td>
+                    <td>
+                      <div className="prod-name">{customerName(o)}</div>
+                      {customerPhone(o) && (
+                        <div className="muted mono" style={{ fontSize: 12 }}>
+                          {customerPhone(o)}
+                        </div>
+                      )}
+                    </td>
                     <td className="num">{o.items.reduce((n, i) => n + i.quantity, 0)}</td>
                     <td className="num">৳{bdNumber(o.totalAmount)}</td>
                     <td>
@@ -184,135 +205,184 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
   const currentIdx = steps.findIndex((s) => s.status === order.status);
   const subtotal = order.items.reduce((n, i) => n + i.unitPrice * i.quantity, 0);
   const discount = order.discountAmount ?? 0;
-  // total = subtotal - discount + shipping, so whatever is left over is shipping
-  const shipping = Math.max(order.totalAmount + discount - subtotal, 0);
+  // Stored on newer orders; older ones: total = subtotal - discount + shipping
+  const shipping = order.shippingFee ?? Math.max(order.totalAmount + discount - subtotal, 0);
+  const zoneLabel =
+    order.shippingZone === "inside_dhaka"
+      ? "Inside Dhaka"
+      : order.shippingZone === "outside_dhaka"
+        ? "Outside Dhaka"
+        : null;
   const email = order.user?.email ?? order.guestEmail;
+  const phone = customerPhone(order);
   const address = order.shippingAddress;
   const options = NEXT_STATUS[order.status];
 
   return (
-    <Modal title={`Order #${order.id.slice(-8).toUpperCase()}`} onClose={onClose}>
-      <div className="card soft mb">
-        <div className="sec-title" style={{ marginBottom: 10 }}>
-          Customer
+    <Modal title={`Order #${order.id.slice(-8).toUpperCase()}`} onClose={onClose} wide={980}>
+      <div className="order-grid">
+        <div>
+          <div className="card soft mb">
+            <div className="sec-title" style={{ marginBottom: 10 }}>
+              Customer
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName(order)}</div>
+            {phone && (
+              <a
+                href={`tel:${phone}`}
+                className="mono"
+                style={{
+                  display: "inline-block",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  color: "var(--accent-hi)",
+                  margin: "2px 0",
+                }}
+              >
+                {phone}
+              </a>
+            )}
+            <div className="muted" style={{ fontSize: 12.5 }}>
+              {email || (!phone && "No contact details")}
+              {address && (
+                <>
+                  <br />
+                  {shippingAddressLines(address).join(", ")}
+                </>
+              )}
+            </div>
+            {order.billingAddress && (
+              <div className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
+                <b>Billing:</b> {order.billingAddress.name} · {order.billingAddress.phone}
+                <br />
+                {order.billingAddress.street}, {order.billingAddress.district}
+              </div>
+            )}
+            {order.notes && (
+              <div style={{ fontSize: 12.5, marginTop: 8 }}>
+                <b>Order notes:</b> <span className="muted">{order.notes}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="card soft mb">
+            <div className="sec-title" style={{ marginBottom: 10 }}>
+              Items
+            </div>
+            <div className="tbl-wrap">
+              <table className="tbl">
+                <tbody>
+                  {order.items.map((it) => (
+                    <tr key={it.id}>
+                      <td className="prod-name">{it.product?.name ?? "Deleted product"}</td>
+                      <td className="num">×{it.quantity}</td>
+                      <td className="num">৳{bdNumber(it.unitPrice * it.quantity)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="kv">
+              <span className="k">Subtotal</span>
+              <span className="v">৳{bdNumber(subtotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="kv">
+                <span className="k">
+                  Coupon <span className="mono">{order.couponCode}</span>
+                </span>
+                <span className="v" style={{ color: "var(--green)" }}>
+                  −৳{bdNumber(discount)}
+                </span>
+              </div>
+            )}
+            {shipping > 0 && (
+              <div className="kv">
+                <span className="k">Delivery{zoneLabel ? ` (${zoneLabel})` : ""}</span>
+                <span className="v">৳{bdNumber(shipping)}</span>
+              </div>
+            )}
+            {order.transactionId && (
+              <div className="kv">
+                <span className="k">bKash / Nagad Txn ID</span>
+                <span className="v mono" style={{ color: "var(--accent-hi)" }}>
+                  {order.transactionId}
+                </span>
+              </div>
+            )}
+            <div className="kv">
+              <span className="k">Payment</span>
+              <span className="v">{paymentLabel(order.paymentMethod)}</span>
+            </div>
+            <div className="kv">
+              <span className="k">Total</span>
+              <span className="v" style={{ color: "var(--accent-hi)" }}>
+                ৳{bdNumber(order.totalAmount)}
+              </span>
+            </div>
+          </div>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 600 }}>{customerName(order)}</div>
-        <div className="muted" style={{ fontSize: 12.5 }}>
-          {[email, order.guestPhone].filter(Boolean).join(" · ") || "No contact details"}
-          {address && (
-            <>
-              <br />
-              {shippingAddressLines(address).join(", ")}
-            </>
+        <div className="order-side">
+          <div className="card soft mb">
+            <div className="sec-title" style={{ marginBottom: 12 }}>
+              Status timeline
+            </div>
+            {order.status === "CANCELLED" ? (
+              <div className="tl-step cancel">
+                <div className="tl-dot">✕</div>
+                <div>
+                  <div className="tl-title">Order cancelled</div>
+                  <div className="tl-sub">Stock was restored</div>
+                </div>
+              </div>
+            ) : (
+              steps.map((s, i) => {
+                const cls = i < currentIdx ? "done" : i === currentIdx ? "now" : "";
+                return (
+                  <div className={`tl-step ${cls}`} key={s.status}>
+                    <div className="tl-dot">{i < currentIdx ? "✓" : i + 1}</div>
+                    <div>
+                      <div className="tl-title">{s.label}</div>
+                      <div className="tl-sub">
+                        {i === 0 ? orderDate(order) : i === currentIdx ? "Current step" : ""}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {options.length > 0 ? (
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <select
+                className="input"
+                value={nextStatus}
+                onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
+                aria-label="New status"
+              >
+                <option value="">Move to…</option>
+                {options.map((s) => (
+                  <option key={s} value={s}>
+                    {s.charAt(0) + s.slice(1).toLowerCase()}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="btn"
+                disabled={!nextStatus || statusMutation.isPending}
+                onClick={() => nextStatus && statusMutation.mutate(nextStatus)}
+              >
+                {statusMutation.isPending ? "Updating…" : "Update"}
+              </button>
+            </div>
+          ) : (
+            <p className="muted" style={{ fontSize: 12.5 }}>
+              This order is {order.status.toLowerCase()}; no further status changes are possible.
+            </p>
           )}
         </div>
       </div>
-
-      <div className="card soft mb">
-        <div className="sec-title" style={{ marginBottom: 10 }}>
-          Items
-        </div>
-        <div className="tbl-wrap">
-          <table className="tbl">
-            <tbody>
-              {order.items.map((it) => (
-                <tr key={it.id}>
-                  <td className="prod-name">{it.product?.name ?? "Deleted product"}</td>
-                  <td className="num">×{it.quantity}</td>
-                  <td className="num">৳{bdNumber(it.unitPrice * it.quantity)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="kv">
-          <span className="k">Subtotal</span>
-          <span className="v">৳{bdNumber(subtotal)}</span>
-        </div>
-        {discount > 0 && (
-          <div className="kv">
-            <span className="k">
-              Coupon <span className="mono">{order.couponCode}</span>
-            </span>
-            <span className="v" style={{ color: "var(--green)" }}>
-              −৳{bdNumber(discount)}
-            </span>
-          </div>
-        )}
-        {shipping > 0 && (
-          <div className="kv">
-            <span className="k">Shipping</span>
-            <span className="v">৳{bdNumber(shipping)}</span>
-          </div>
-        )}
-        <div className="kv">
-          <span className="k">Payment</span>
-          <span className="v">{paymentLabel(order.paymentMethod)}</span>
-        </div>
-        <div className="kv">
-          <span className="k">Total</span>
-          <span className="v" style={{ color: "var(--accent-hi)" }}>
-            ৳{bdNumber(order.totalAmount)}
-          </span>
-        </div>
-      </div>
-
-      <div className="card soft mb">
-        <div className="sec-title" style={{ marginBottom: 12 }}>
-          Status timeline
-        </div>
-        {order.status === "CANCELLED" ? (
-          <div className="tl-step cancel">
-            <div className="tl-dot">✕</div>
-            <div>
-              <div className="tl-title">Order cancelled</div>
-              <div className="tl-sub">Stock was restored</div>
-            </div>
-          </div>
-        ) : (
-          steps.map((s, i) => {
-            const cls = i < currentIdx ? "done" : i === currentIdx ? "now" : "";
-            return (
-              <div className={`tl-step ${cls}`} key={s.status}>
-                <div className="tl-dot">{i < currentIdx ? "✓" : i + 1}</div>
-                <div>
-                  <div className="tl-title">{s.label}</div>
-                  <div className="tl-sub">{i === 0 ? orderDate(order) : i === currentIdx ? "Current step" : ""}</div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {options.length > 0 ? (
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <select
-            className="input"
-            value={nextStatus}
-            onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
-            aria-label="New status"
-          >
-            <option value="">Move to…</option>
-            {options.map((s) => (
-              <option key={s} value={s}>
-                {s.charAt(0) + s.slice(1).toLowerCase()}
-              </option>
-            ))}
-          </select>
-          <button
-            className="btn"
-            disabled={!nextStatus || statusMutation.isPending}
-            onClick={() => nextStatus && statusMutation.mutate(nextStatus)}
-          >
-            {statusMutation.isPending ? "Updating…" : "Update"}
-          </button>
-        </div>
-      ) : (
-        <p className="muted" style={{ fontSize: 12.5 }}>
-          This order is {order.status.toLowerCase()}; no further status changes are possible.
-        </p>
-      )}
     </Modal>
   );
 }

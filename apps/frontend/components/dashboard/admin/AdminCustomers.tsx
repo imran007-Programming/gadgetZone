@@ -116,7 +116,10 @@ export default function AdminCustomers() {
                           </div>
                           <div>
                             <div className="pn">{u.name}</div>
-                            <div className="ps">{u.email}</div>
+                            <div className="ps">
+                              {u.email}
+                              {u.phone && <> · {u.phone}</>}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -162,6 +165,12 @@ function CustomerOrders({ user, onClose }: { user: User; onClose: () => void }) 
           <span className="k">Email</span>
           <span className="v" style={{ fontWeight: 500 }}>
             {user.email}
+          </span>
+        </div>
+        <div className="kv">
+          <span className="k">Mobile</span>
+          <span className="v mono">
+            {user.phone ? <a href={`tel:${user.phone}`}>{user.phone}</a> : <span className="muted">Not added</span>}
           </span>
         </div>
         <div className="kv">

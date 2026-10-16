@@ -113,6 +113,15 @@ function OrderDetailContent() {
             <span className="font-semibold text-primary-700">−{formatPrice(order.discountAmount ?? 0)}</span>
           </div>
         )}
+        {(order.shippingFee ?? 0) > 0 && (
+          <div className="mt-3 flex justify-between border-t border-zinc-200 pt-3 text-sm">
+            <span className="text-zinc-500">
+              Delivery
+              {order.shippingZone && ` (${order.shippingZone === "inside_dhaka" ? "Inside Dhaka" : "Outside Dhaka"})`}
+            </span>
+            <span className="font-semibold text-zinc-800">{formatPrice(order.shippingFee ?? 0)}</span>
+          </div>
+        )}
         <div className="mt-3 flex justify-between border-t border-zinc-200 pt-3">
           <span className="text-sm font-medium text-zinc-500">Total</span>
           <span className="text-base font-bold text-zinc-900">

@@ -140,3 +140,13 @@ body {
     margin-bottom: 8px;
   }
 }
+
+/* Product page buy bar on screen: lift the back-to-top button above it */
+html[data-buybar] .back-to-top {
+  margin-bottom: 68px;
+}
+@media (min-width: 768px) {
+  html[data-buybar] .back-to-top {
+    margin-bottom: 72px;
+  }
+}

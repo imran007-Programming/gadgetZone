@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, PanelTop, TicketPercent } from "lucide-react";
+import { ArrowRight, PanelTop, TicketPercent, Truck } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { useSiteSettings } from "@/lib/categories";
@@ -16,8 +16,87 @@ export default function AdminSettings() {
   if (settingsQuery.isError)
     return <ErrorBox message={(settingsQuery.error as Error).message} onRetry={() => settingsQuery.refetch()} />;
 
-  // Keyed on the saved version so the form resets after a save elsewhere
-  return <TopbarForm key={JSON.stringify(settingsQuery.data)} initial={settingsQuery.data} />;
+  // Keyed on the saved version so the forms reset after a save
+  const key = JSON.stringify(settingsQuery.data);
+  return (
+    <>
+      <TopbarForm key={`top-${key}`} initial={settingsQuery.data} />
+      <DeliveryForm key={`del-${key}`} initial={settingsQuery.data} />
+    </>
+  );
+}
+
+const BD_MOBILE = /^01[3-9]\d{8}$/;
+
+/** Checkout delivery charges and the bKash / Nagad numbers for advance payment. */
+function DeliveryForm({ initial }: { initial: SiteSettings }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [inside, setInside] = useState(String(initial.deliveryFeeInsideDhaka));
+  const [outside, setOutside] = useState(String(initial.deliveryFeeOutsideDhaka));
+  const [advance, setAdvance] = useState(initial.advanceOutsideDhaka);
+  const [bkash, setBkash] = useState(initial.bkashNumber);
+  const [nagad, setNagad] = useState(initial.nagadNumber);
+
+  const feeError = (v: string) => (/^\d{1,4}$/.test(v) && Number(v) <= 5000 ? undefined : "Whole taka, 0–5000");
+  const numberError = (v: string) => (v === "" || BD_MOBILE.test(v) ? undefined : "Use 01XXXXXXXXX");
+  const canSave = !feeError(inside) && !feeError(outside) && !numberError(bkash) && !numberError(nagad);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiClient.patch<SiteSettings>("/admin/settings", {
+        deliveryFeeInsideDhaka: Number(inside),
+        deliveryFeeOutsideDhaka: Number(outside),
+        advanceOutsideDhaka: advance,
+        bkashNumber: bkash.trim(),
+        nagadNumber: nagad.trim(),
+      }),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(["site-settings"], saved);
+      toast.success("Delivery & payment saved");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <section style={{ marginTop: 18 }}>
+      <Card>
+        <CardHead title="Delivery & payment" icon={<Truck />} />
+        <div className="form-2col">
+          <Field label="Delivery charge — inside Dhaka (৳)" error={feeError(inside)}>
+            <input type="number" min={0} value={inside} onChange={(e) => setInside(e.target.value)} />
+          </Field>
+          <Field label="Delivery charge — outside Dhaka (৳)" error={feeError(outside)}>
+            <input type="number" min={0} value={outside} onChange={(e) => setOutside(e.target.value)} />
+          </Field>
+        </div>
+
+        <div className="toggle-row mb">
+          <div>
+            <div className="t-title">Advance delivery charge outside Dhaka</div>
+            <div className="t-desc">
+              Customers outside Dhaka send the delivery charge by bKash / Nagad and enter the Transaction ID; the rest is
+              cash on delivery. Needs at least one number below.
+            </div>
+          </div>
+          <Switch label="Advance delivery charge outside Dhaka" checked={advance} onChange={setAdvance} />
+        </div>
+
+        <div className="form-2col">
+          <Field label="bKash number (Personal)" error={numberError(bkash)}>
+            <input className="mono" value={bkash} maxLength={11} onChange={(e) => setBkash(e.target.value.trim())} placeholder="01XXXXXXXXX" />
+          </Field>
+          <Field label="Nagad number (Personal)" error={numberError(nagad)}>
+            <input className="mono" value={nagad} maxLength={11} onChange={(e) => setNagad(e.target.value.trim())} placeholder="01XXXXXXXXX" />
+          </Field>
+        </div>
+
+        <button className="btn block" disabled={!canSave || saveMutation.isPending} onClick={() => saveMutation.mutate()}>
+          {saveMutation.isPending ? "Saving…" : "Save delivery & payment"}
+        </button>
+      </Card>
+    </section>
+  );
 }
 
 function TopbarForm({ initial }: { initial: SiteSettings }) {
