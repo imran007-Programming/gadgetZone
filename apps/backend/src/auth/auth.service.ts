@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
@@ -28,6 +34,17 @@ const REFRESH_ROTATE_AFTER_MS = 24 * 60 * 60 * 1000;
  * read/clear it without juggling two cookies.
  */
 export const REFRESH_TOKEN_COOKIE = 'refresh_token';
+
+/** The admin portal keeps its own session cookie, so it never mixes with a storefront login. */
+export const ADMIN_REFRESH_TOKEN_COOKIE = 'admin_refresh_token';
+
+/** Storefront (customer accounts) or admin portal (admin accounts). */
+export type AuthAudience = 'customer' | 'admin';
+
+const COOKIE_FOR: Record<AuthAudience, string> = {
+  customer: REFRESH_TOKEN_COOKIE,
+  admin: ADMIN_REFRESH_TOKEN_COOKIE,
+};
 
 const BCRYPT_ROUNDS = 10;
 
@@ -86,9 +103,14 @@ export class AuthService {
     return toSafeUser(user);
   }
 
+  /**
+   * Customer accounts sign in on the storefront and admin accounts on the
+   * admin portal; each side rejects the other's accounts.
+   */
   async login(
     dto: LoginDto,
     res: Response,
+    audience: AuthAudience = 'customer',
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
@@ -99,8 +121,15 @@ export class AuthService {
     if (user.isActive === false) {
       throw new UnauthorizedException('Account disabled');
     }
+    // Same message as a wrong password: the admin login never confirms which emails exist
+    if (audience === 'admin' && user.role !== 'ADMIN') {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+    if (audience === 'customer' && user.role === 'ADMIN') {
+      throw new ForbiddenException('Admin accounts sign in at the admin portal');
+    }
     const accessToken = await this.signAccessToken(user);
-    const refreshToken = await this.issueRefreshToken(user, res);
+    const refreshToken = await this.issueRefreshToken(user, res, audience);
     return { accessToken, refreshToken };
   }
 
@@ -112,10 +141,11 @@ export class AuthService {
   async refresh(
     req: Request,
     res: Response,
+    audience: AuthAudience = 'customer',
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // Accept from cookie (preferred) or request body (for browsers blocking cross-site cookies).
     const presented =
-      (req.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined) ??
+      (req.cookies?.[COOKIE_FOR[audience]] as string | undefined) ??
       (req.body as { refreshToken?: string } | undefined)?.refreshToken;
     if (!presented) {
       throw new UnauthorizedException('Refresh token is missing');
@@ -123,10 +153,15 @@ export class AuthService {
 
     const payload = await this.verifyRefreshToken(presented);
     if (!payload) {
-      this.clearRefreshCookie(res);
+      this.clearRefreshCookie(res, audience);
       throw new UnauthorizedException('Invalid refresh token');
     }
     const user = await this.usersService.findById(payload.sub);
+    // A session only refreshes on its own side (storefront ↔ customers, portal ↔ admins)
+    if (user && (user.role === 'ADMIN') !== (audience === 'admin')) {
+      this.clearRefreshCookie(res, audience);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
     const storedHash = user?.refreshTokenHash ?? null;
     const digest = tokenDigest(presented);
     const matchesCurrent =
@@ -146,7 +181,7 @@ export class AuthService {
       if (user) {
         await this.usersService.updateRefreshTokenHash(user.id, null);
       }
-      this.clearRefreshCookie(res);
+      this.clearRefreshCookie(res, audience);
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -156,7 +191,7 @@ export class AuthService {
       // A retry with the token from just before the last rotation (its response
       // was lost). Hand out a fresh token, but keep the previous hash and the
       // original rotation time so the grace window is not extended.
-      const refreshToken = await this.issueRefreshToken(user, res, (hash) =>
+      const refreshToken = await this.issueRefreshToken(user, res, audience, (hash) =>
         this.usersService.replaceCurrentRefreshTokenHash(user.id, hash),
       );
       return { accessToken, refreshToken };
@@ -171,14 +206,18 @@ export class AuthService {
     }
 
     // The hash being replaced stays valid for the grace period
-    const refreshToken = await this.issueRefreshToken(user, res, (hash) =>
+    const refreshToken = await this.issueRefreshToken(user, res, audience, (hash) =>
       this.usersService.updateRefreshTokenHash(user.id, hash, storedHash),
     );
     return { accessToken, refreshToken };
   }
 
-  async logout(req: Request, res: Response): Promise<{ message: string }> {
-    const presented = req.cookies?.[REFRESH_TOKEN_COOKIE] as
+  async logout(
+    req: Request,
+    res: Response,
+    audience: AuthAudience = 'customer',
+  ): Promise<{ message: string }> {
+    const presented = req.cookies?.[COOKIE_FOR[audience]] as
       | string
       | undefined;
     if (presented) {
@@ -194,7 +233,7 @@ export class AuthService {
       }
     }
     // Always clear the cookie, even if the token was missing/invalid.
-    this.clearRefreshCookie(res);
+    this.clearRefreshCookie(res, audience);
     return { message: 'Logged out' };
   }
 
@@ -224,6 +263,7 @@ export class AuthService {
   private async issueRefreshToken(
     user: User,
     res: Response,
+    audience: AuthAudience,
     persist: (hash: string) => Promise<unknown> = (hash) =>
       this.usersService.updateRefreshTokenHash(user.id, hash),
   ): Promise<string> {
@@ -234,7 +274,7 @@ export class AuthService {
     });
     const hash = await bcrypt.hash(tokenDigest(token), BCRYPT_ROUNDS);
     await persist(hash);
-    res.cookie(REFRESH_TOKEN_COOKIE, token, this.refreshCookieOptions());
+    res.cookie(COOKIE_FOR[audience], token, this.refreshCookieOptions());
     return token;
   }
 
@@ -263,9 +303,9 @@ export class AuthService {
     };
   }
 
-  private clearRefreshCookie(res: Response): void {
+  private clearRefreshCookie(res: Response, audience: AuthAudience): void {
     const crossDomain = this.isProduction;
-    res.clearCookie(REFRESH_TOKEN_COOKIE, {
+    res.clearCookie(COOKIE_FOR[audience], {
       httpOnly: true,
       secure: crossDomain ? true : this.isProduction,
       sameSite: crossDomain ? 'none' : 'lax',

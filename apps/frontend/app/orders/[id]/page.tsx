@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, shippingAddressLines } from "@/lib/utils";
 import type { Order, ReturnStatus } from "@/lib/types";
 import { BackLink, ErrorState, RequireAuth, Spinner, StatusBadge } from "@/components/ui";
 
@@ -127,12 +127,13 @@ function OrderDetailContent() {
         </h2>
         <p className="text-sm text-zinc-700">
           {addr.name}
-          <br />
-          {addr.street}
-          <br />
-          {addr.city}, {addr.postalCode}
-          <br />
-          {addr.country}
+          {addr.phone && <> · {addr.phone}</>}
+          {shippingAddressLines(addr).map((line) => (
+            <span key={line}>
+              <br />
+              {line}
+            </span>
+          ))}
         </p>
         <p className="mt-2 text-xs text-zinc-500">
           Placed on {new Date(order.createdAt).toLocaleString()}

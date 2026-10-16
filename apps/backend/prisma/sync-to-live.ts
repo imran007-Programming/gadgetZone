@@ -1,7 +1,8 @@
 /**
  * Copies the catalog from the local database to the live one: brands (with
- * logos/covers), categories, products with their galleries, and the product a
- * banner links to. Images are not re-uploaded; both databases point at the same
+ * logos/covers), categories and subcategories (parent + display order),
+ * products with their galleries, the product a banner links to, and the
+ * storefront settings (top bar). Images are not re-uploaded; both databases point at the same
  * Cloudinary files.
  *
  * Live products that are not in the local catalog are deleted, except ones
@@ -40,13 +41,14 @@ const hostOf = (url: string) => url.replace(/^.*@/, '').replace(/\/.*$/, '');
 async function main() {
   console.log(`${APPLY ? 'APPLY' : 'DRY RUN'}: ${hostOf(DATABASE_URL!)} → ${hostOf(LIVE_DATABASE_URL!)}`);
 
-  const [brands, categories, products, banners] = await Promise.all([
+  const [brands, categories, products, banners, settings] = await Promise.all([
     local.brand.findMany(),
-    local.category.findMany(),
+    local.category.findMany({ include: { parent: { select: { slug: true } } } }),
     local.product.findMany({
       include: { images: { orderBy: { position: 'asc' } }, brand: true, category: true },
     }),
     local.banner.findMany({ include: { product: { select: { slug: true } } } }),
+    local.siteSetting.findUnique({ where: { id: 'default' } }),
   ]);
   const keepSlugs = new Set(products.map((p) => p.slug));
 
@@ -57,7 +59,10 @@ async function main() {
   const toDeactivate = stale.filter((p) => p._count.orderItems > 0);
   const toDelete = stale.filter((p) => p._count.orderItems === 0);
 
-  console.log(`local: ${brands.length} brands, ${categories.length} categories, ${products.length} products, ${banners.length} banners`);
+  const subCount = categories.filter((c) => c.parentId).length;
+  console.log(
+    `local: ${brands.length} brands, ${categories.length - subCount} categories + ${subCount} subcategories, ${products.length} products, ${banners.length} banners, settings ${settings ? 'yes' : 'no'}`,
+  );
   console.log(`live:  ${liveProducts.length} products → delete ${toDelete.length}, deactivate ${toDeactivate.length} (have orders), upsert ${products.length}`);
   if (!APPLY) {
     console.log('Nothing written. Re-run with --apply to sync.');
@@ -79,11 +84,18 @@ async function main() {
     const row = await live.brand.upsert({ where: { slug: b.slug }, create: { slug: b.slug, ...data }, update: data });
     brandId.set(b.slug, row.id);
   }
+  // Categories in two passes: every row first, then each subcategory's parent by slug
   const categoryId = new Map<string, string>();
   for (const c of categories) {
-    const data = { name: c.name, description: c.description };
+    const data = { name: c.name, description: c.description, position: c.position };
     const row = await live.category.upsert({ where: { slug: c.slug }, create: { slug: c.slug, ...data }, update: data });
     categoryId.set(c.slug, row.id);
+  }
+  for (const c of categories) {
+    await live.category.update({
+      where: { slug: c.slug },
+      data: { parentId: c.parent ? (categoryId.get(c.parent.slug) ?? null) : null },
+    });
   }
   console.log(`brands + categories synced`);
 
@@ -145,6 +157,13 @@ async function main() {
     bannerCount++;
   }
   console.log(`banners synced: ${bannerCount}`);
+
+  if (settings) {
+    const { id, updatedAt, ...data } = settings;
+    void updatedAt;
+    await live.siteSetting.upsert({ where: { id }, create: { id, ...data }, update: data });
+    console.log('settings synced (top bar)');
+  }
 }
 
 main()

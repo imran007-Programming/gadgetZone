@@ -94,3 +94,51 @@ export class AuthController {
     return this.authService.me(user.userId);
   }
 }
+
+/**
+ * Admin portal sign-in: only ADMIN accounts, with its own refresh cookie
+ * (admin_refresh_token) so an admin session never mixes with a storefront one.
+ * /auth/me is shared; it works with either access token.
+ */
+@ApiTags('auth')
+@Controller('auth/admin')
+export class AdminAuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('login')
+  @Public()
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin portal log in (admin accounts only)' })
+  @ApiResponse({ status: 200, description: '{ accessToken }' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials or not an admin account' })
+  login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ accessToken: string }> {
+    return this.authService.login(dto, res, 'admin');
+  }
+
+  @Post('refresh')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Rotate the admin refresh cookie, returns a new access token' })
+  refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ accessToken: string }> {
+    return this.authService.refresh(req, res, 'admin');
+  }
+
+  @Post('logout')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revoke the admin refresh token and clear its cookie' })
+  logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ message: string }> {
+    return this.authService.logout(req, res, 'admin');
+  }
+}

@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, type JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { UsersModule } from '../users/users.module.js';
-import { AuthController } from './auth.controller.js';
+import { AdminAuthController, AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 
@@ -23,7 +23,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
     }),
     UsersModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AdminAuthController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })

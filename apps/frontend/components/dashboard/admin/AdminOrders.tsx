@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import type { AdminStats, Order, OrderStatus } from "@/lib/types";
+import { shippingAddressLines } from "@/lib/utils";
 import {
   Badge,
   Card,
@@ -201,7 +202,7 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
           {address && (
             <>
               <br />
-              {[address.street, address.city, address.postalCode, address.country].filter(Boolean).join(", ")}
+              {shippingAddressLines(address).join(", ")}
             </>
           )}
         </div>

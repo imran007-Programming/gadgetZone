@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiClient, ApiError } from "@/lib/api";
@@ -10,7 +10,8 @@ import { useAuth } from "@/lib/auth";
 import { useCartStore, selectItemCount, selectSubtotal } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
 import { formatPrice } from "@/lib/utils";
-import type { CouponPreview, Order, ShippingAddress } from "@/lib/types";
+import type { CouponPreview, Order } from "@/lib/types";
+import type { BdDistrict } from "@/lib/bd-locations";
 import { Banknote, CheckCircle2, Tag, X } from "lucide-react";
 import {
   BackLink,
@@ -22,22 +23,49 @@ import {
 
 /**
  * Checkout: guest-friendly, COD only.
- * - No login required. Guests fill name / mobile / address / email (optional).
+ * - No login required. Guests fill name / mobile / email (optional) and a
+ *   Bangladesh address: district → upazila/thana → union (optional) + street.
  * - Logged-in users: order is created from their server cart via POST /orders.
  * - Guests: order is created via POST /orders/guest with cart items.
  * - Payment method is Cash on Delivery — no online payment step.
  */
-const guestSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+/** 01XXXXXXXXX: 11 digits, operator prefix 013–019 (same rule as the backend). */
+const BD_MOBILE_REGEX = /^01[3-9]\d{8}$/;
+
+/** Strips spaces/dashes and a +88 / 88 country prefix. */
+const normalizePhone = (v: string) => v.replace(/[\s-]/g, "").replace(/^\+?88(?=01)/, "");
+
+const checkoutSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name is too long"),
   phone: z
     .string()
-    .min(6, "Enter a valid mobile number")
-    .regex(/^[0-9+\-\s]+$/, "Enter a valid mobile number"),
-  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
-  address: z.string().min(5, "Full address is required"),
+    .trim()
+    .refine(
+      (v) => BD_MOBILE_REGEX.test(normalizePhone(v)),
+      "Enter a valid Bangladeshi mobile number (01XXXXXXXXX)",
+    ),
+  email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
+  district: z.string().min(1, "Select your district"),
+  upazila: z.string().min(1, "Select your upazila / thana"),
+  union: z.string().optional(),
+  address: z
+    .string()
+    .trim()
+    .min(5, "Enter house, road, village or area")
+    .max(250, "Address is too long"),
+  postalCode: z
+    .string()
+    .trim()
+    .regex(/^\d{4}$/, "Postal code must be 4 digits")
+    .optional()
+    .or(z.literal("")),
 });
 
-type GuestForm = z.infer<typeof guestSchema>;
+type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 export default function CheckoutPage() {
   const { isLoading } = useAuth();
@@ -88,11 +116,39 @@ function CheckoutContent() {
   const {
     register,
     handleSubmit,
+    setValue,
+    control,
     formState: { errors },
-  } = useForm<GuestForm>({
-    resolver: zodResolver(guestSchema),
-    defaultValues: { name: user?.name ?? "", email: "" },
+  } = useForm<CheckoutForm>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      name: user?.name ?? "",
+      email: "",
+      district: "",
+      upazila: "",
+      union: "",
+      postalCode: "",
+    },
   });
+
+  // District → upazila/thana → union dropdowns. The dataset is large, so it is
+  // loaded only when the checkout page opens.
+  const [districts, setDistricts] = useState<BdDistrict[] | null>(null);
+  const [locationsError, setLocationsError] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    import("@/lib/bd-locations")
+      .then((m) => alive && setDistricts(m.BD_DISTRICTS))
+      .catch(() => alive && setLocationsError(true));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const [districtName, upazilaName] = useWatch({ control, name: ["district", "upazila"] });
+  const selectedDistrict = districts?.find((d) => d.name === districtName);
+  const selectedUpazila = selectedDistrict?.upazilas.find((u) => u.name === upazilaName);
+  const unions = selectedUpazila?.unions ?? [];
 
   // ---- Success screen --------------------------------------------------
   if (placedOrder) {
@@ -141,31 +197,38 @@ function CheckoutContent() {
     );
   }
 
-  const onSubmit = async (values: GuestForm) => {
+  const onSubmit = async (values: CheckoutForm) => {
     setSubmitting(true);
     setSubmitError(null);
+    const location = {
+      district: values.district,
+      upazila: values.upazila,
+      union: values.union || undefined,
+      postalCode: values.postalCode || undefined,
+    };
+    const phone = normalizePhone(values.phone);
     try {
       let order: Order;
       if (isAuthenticated) {
         // Logged-in: backend reads the server cart.
-        const shippingAddress: ShippingAddress = {
-          name: values.name,
-          street: values.address,
-          city: "",
-          postalCode: "",
-          country: "Bangladesh",
-        };
         order = await apiClient.post<Order>("/orders", {
-          shippingAddress,
+          shippingAddress: {
+            name: values.name,
+            phone,
+            street: values.address,
+            ...location,
+            country: "Bangladesh",
+          },
           couponCode: coupon?.code,
         });
       } else {
         // Guest: send cart items + contact info.
         order = await apiClient.post<Order>("/orders/guest", {
           name: values.name,
-          phone: values.phone,
+          phone,
           email: values.email || undefined,
           address: values.address,
+          ...location,
           items: items.map((i) => ({
             productId: i.productId,
             quantity: i.quantity,
@@ -308,13 +371,114 @@ function CheckoutContent() {
               />
             </Field>
           </div>
-          <Field label="Full address" error={errors.address?.message} htmlFor="address">
+          {locationsError && (
+            <p className="text-sm text-rose-600">
+              Could not load the district list. Please refresh the page.
+            </p>
+          )}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="District" error={errors.district?.message} htmlFor="district">
+              <select
+                id="district"
+                className={inputClass}
+                disabled={!districts}
+                {...register("district", {
+                  onChange: () => {
+                    setValue("upazila", "");
+                    setValue("union", "");
+                  },
+                })}
+              >
+                <option value="">{districts ? "Select district" : "Loading…"}</option>
+                {districts?.map((d) => (
+                  <option key={d.name} value={d.name}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label="Upazila / Thana"
+              error={errors.upazila?.message}
+              htmlFor="upazila"
+            >
+              <select
+                id="upazila"
+                className={inputClass}
+                disabled={!selectedDistrict}
+                {...register("upazila", { onChange: () => setValue("union", "") })}
+              >
+                <option value="">
+                  {selectedDistrict ? "Select upazila / thana" : "Select a district first"}
+                </option>
+                {selectedDistrict?.upazilas.map((u) => (
+                  <option key={u.name} value={u.name}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label="Union / Area (optional)"
+              error={errors.union?.message}
+              htmlFor="union"
+            >
+              <select
+                id="union"
+                className={inputClass}
+                disabled={unions.length === 0}
+                {...register("union")}
+              >
+                <option value="">
+                  {!selectedUpazila
+                    ? "Select an upazila first"
+                    : unions.length
+                      ? "Select union / area"
+                      : "No unions listed"}
+                </option>
+                {unions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field
+              label="Postal code (optional)"
+              error={errors.postalCode?.message}
+              htmlFor="postalCode"
+            >
+              <input
+                id="postalCode"
+                className={inputClass}
+                autoComplete="postal-code"
+                placeholder="e.g. 3700"
+                inputMode="numeric"
+                maxLength={4}
+                {...register("postalCode")}
+              />
+            </Field>
+          </div>
+          <Field
+            label="House, road, village / area"
+            error={errors.address?.message}
+            htmlFor="address"
+          >
             <textarea
               id="address"
               className={`${inputClass} min-h-20 resize-y`}
               autoComplete="street-address"
-              placeholder="House, road, area, city"
+              placeholder="House 12, Road 5, Sakaripara, Ward 5"
               {...register("address")}
+            />
+          </Field>
+          <Field label="Country" htmlFor="country">
+            <input
+              id="country"
+              className={`${inputClass} bg-zinc-50 text-zinc-500`}
+              value="Bangladesh"
+              readOnly
+              tabIndex={-1}
             />
           </Field>
 

@@ -38,10 +38,12 @@ const CATEGORY_SLUG = `e2e-cat-${RUN_ID}`;
 
 const SHIPPING = {
   name: 'E2E Buyer',
-  street: '12 Main Street',
-  city: 'Dhaka',
-  postalCode: '1000',
-  country: 'Bangladesh',
+  phone: '01712345678',
+  street: 'House 12, Road 5',
+  district: 'Dhaka',
+  upazila: 'Dhaka South City Corporation',
+  union: 'Dhanmondi',
+  postalCode: '1205',
 };
 
 describe.skipIf(!TEST_DATABASE_URL)('Orders (e2e)', () => {

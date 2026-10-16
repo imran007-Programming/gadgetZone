@@ -26,10 +26,30 @@ const API_URL =
 let accessToken: string | null = null;
 
 /**
- * Refresh token backup for browsers that block the API's cross-site cookie
- * (e.g. Safari ITP). Kept in a first-party cookie on the storefront domain.
+ * Which session this page uses: the admin portal (admin.<domain>, or /admin on
+ * the main host) or the storefront. Each side has its own auth endpoints and
+ * refresh token, so an admin login never mixes with a customer login.
  */
-const REFRESH_KEY = "gadgetlax-refresh";
+export type AuthScope = "admin" | "customer";
+
+export function authScope(): AuthScope {
+  if (typeof window === "undefined") return "customer";
+  const { hostname, pathname } = window.location;
+  return hostname.startsWith("admin.") || pathname === "/admin" || pathname.startsWith("/admin/")
+    ? "admin"
+    : "customer";
+}
+
+/** /auth/login → /auth/admin/login on the admin portal (same for refresh and logout). */
+export function authPath(action: "login" | "refresh" | "logout"): string {
+  return authScope() === "admin" ? `/auth/admin/${action}` : `/auth/${action}`;
+}
+
+/**
+ * Refresh token backup for browsers that block the API's cross-site cookie
+ * (e.g. Safari ITP). Kept in a first-party cookie, one per side.
+ */
+const refreshKey = () => (authScope() === "admin" ? "gadgetlax-admin-refresh" : "gadgetlax-refresh");
 /** Matches the API's refresh token lifetime (JWT_REFRESH_EXPIRES_IN=7d). */
 const REFRESH_COOKIE_DAYS = 7;
 
@@ -45,6 +65,7 @@ function refreshCookieOptions(): Cookies.CookieAttributes {
 
 function getStoredRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
+  const REFRESH_KEY = refreshKey();
   const fromCookie = Cookies.get(REFRESH_KEY);
   if (fromCookie) return fromCookie;
   // One-time move for sessions saved by the older localStorage version
@@ -63,8 +84,8 @@ function getStoredRefreshToken(): string | null {
 
 export function setStoredRefreshToken(token: string | null) {
   if (typeof window === "undefined") return;
-  if (token) Cookies.set(REFRESH_KEY, token, refreshCookieOptions());
-  else Cookies.remove(REFRESH_KEY, { path: "/" });
+  if (token) Cookies.set(refreshKey(), token, refreshCookieOptions());
+  else Cookies.remove(refreshKey(), { path: "/" });
 }
 
 export function setAccessToken(token: string | null) {
@@ -106,7 +127,8 @@ async function parseJson(res: Response): Promise<unknown> {
 let refreshInFlight: Promise<string | null> | null = null;
 
 /**
- * Call POST /auth/refresh using the httpOnly cookie (or stored token fallback).
+ * Call POST /auth/refresh (or /auth/admin/refresh on the admin portal) using the
+ * httpOnly cookie (or stored token fallback).
  * Returns the new access token or null. Concurrent calls share one request,
  * because each refresh rotates the token and a second call with the old one
  * would look like token reuse to the API.
@@ -123,7 +145,7 @@ export function refreshAccessToken(): Promise<string | null> {
 async function doRefresh(): Promise<string | null> {
   try {
     const stored = getStoredRefreshToken();
-    const res = await fetch(`${API_URL}/auth/refresh`, {
+    const res = await fetch(`${API_URL}${authPath("refresh")}`, {
       method: "POST",
       credentials: "include",
       headers: stored ? { "Content-Type": "application/json" } : undefined,

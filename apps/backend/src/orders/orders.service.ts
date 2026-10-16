@@ -9,6 +9,7 @@ import { CreateOrderDto } from './dto/create-order.dto.js';
 import { CreateGuestOrderDto } from './dto/create-guest-order.dto.js';
 import { PaymentService } from './payment/payment.service.js';
 import { CouponsService } from '../coupons/coupons.service.js';
+import { resolveBdLocation } from '../common/bd-locations.js';
 
 const ORDER_INCLUDE = {
   items: {
@@ -41,6 +42,37 @@ const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.CANCELLED]: [],
 };
 
+/**
+ * Shipping address as stored on the order. district/upazila/union are checked
+ * against the real BD location tree; `city` mirrors the district for older
+ * readers of the JSON.
+ */
+function buildShippingAddress(input: {
+  name: string;
+  phone: string;
+  email?: string;
+  street: string;
+  district: string;
+  upazila: string;
+  union?: string;
+  postalCode?: string;
+}) {
+  const loc = resolveBdLocation(input);
+  return {
+    name: input.name,
+    phone: input.phone,
+    email: input.email ?? null,
+    street: input.street,
+    union: loc.union ?? null,
+    upazila: loc.upazila,
+    district: loc.district,
+    division: loc.division,
+    city: loc.district,
+    postalCode: input.postalCode ?? '',
+    country: 'Bangladesh',
+  };
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -50,6 +82,7 @@ export class OrdersService {
   ) {}
 
   async create(userId: string, dto: CreateOrderDto) {
+    const shippingAddress = buildShippingAddress(dto.shippingAddress);
     const order = await this.prisma.$transaction(async (tx) => {
       const cartItems = await tx.cartItem.findMany({
         where: { userId },
@@ -95,8 +128,7 @@ export class OrdersService {
           discountAmount: discount,
           couponId: coupon?.id ?? null,
           couponCode: coupon?.code ?? null,
-          shippingAddress:
-            dto.shippingAddress as unknown as Prisma.InputJsonValue,
+          shippingAddress: shippingAddress as unknown as Prisma.InputJsonValue,
           items: {
             create: cartItems.map((item) => ({
               productId: item.productId,
@@ -128,6 +160,16 @@ export class OrdersService {
    * validated against live product data inside a transaction.
    */
   async createGuest(dto: CreateGuestOrderDto) {
+    const shippingAddress = buildShippingAddress({
+      name: dto.name,
+      phone: dto.phone,
+      email: dto.email,
+      street: dto.address,
+      district: dto.district,
+      upazila: dto.upazila,
+      union: dto.union,
+      postalCode: dto.postalCode,
+    });
     const order = await this.prisma.$transaction(async (tx) => {
       if (!dto.items || dto.items.length === 0) {
         throw new BadRequestException('Cart is empty');
@@ -172,15 +214,7 @@ export class OrdersService {
           guestName: dto.name,
           guestPhone: dto.phone,
           guestEmail: dto.email ?? null,
-          shippingAddress: {
-            name: dto.name,
-            street: dto.address,
-            city: '',
-            postalCode: '',
-            country: 'Bangladesh',
-            phone: dto.phone,
-            email: dto.email ?? null,
-          } as unknown as Prisma.InputJsonValue,
+          shippingAddress: shippingAddress as unknown as Prisma.InputJsonValue,
           items: {
             create: lines.map((l) => ({
               productId: l.productId,

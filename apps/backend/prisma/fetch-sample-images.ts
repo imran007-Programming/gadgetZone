@@ -14,6 +14,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
+import { assertLocalDatabase } from './local-only.js';
 
 try {
   process.loadEnvFile();
@@ -35,6 +36,7 @@ cloudinary.config({
 
 const prisma = new PrismaClient();
 const RESET = process.argv.includes('--reset');
+if (RESET) assertLocalDatabase('images:sample --reset');
 const PER_PRODUCT = 3;
 const USER_AGENT = 'gadgetlax-seed/1.0 (local dev; contact: admin@example.com)';
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);

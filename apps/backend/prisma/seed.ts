@@ -11,6 +11,14 @@
  */
 import { PrismaClient, Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { assertLocalDatabase } from './local-only.js';
+
+try {
+  process.loadEnvFile();
+} catch {
+  // rely on the environment
+}
+assertLocalDatabase('seed');
 
 const prisma = new PrismaClient();
 /* ------------------------------------------------------------------ */

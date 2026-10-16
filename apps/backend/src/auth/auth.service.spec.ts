@@ -1,9 +1,9 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import type { Request, Response } from 'express';
-import { AuthService, REFRESH_TOKEN_COOKIE } from './auth.service.js';
+import { ADMIN_REFRESH_TOKEN_COOKIE, AuthService, REFRESH_TOKEN_COOKIE } from './auth.service.js';
 
 const TEST_SECRETS = {
   JWT_ACCESS_SECRET: 'test-access-secret-min-16-chars',
@@ -355,6 +355,61 @@ describe('AuthService', () => {
       const result = await authService.me(created.id);
       expect(result.email).toBe('me@example.com');
       expect(result).not.toHaveProperty('passwordHash');
+    });
+  });
+
+  describe('admin portal vs storefront', () => {
+    const creds = { email: 'boss@example.com', password: 'StrongPass1' };
+    const adminReq = (token?: string) =>
+      ({ cookies: token ? { [ADMIN_REFRESH_TOKEN_COOKIE]: token } : {} }) as unknown as Request;
+
+    beforeEach(async () => {
+      await authService.register({ ...creds, name: 'Boss' });
+      await authService.register({ email: 'shopper@example.com', password: 'StrongPass1', name: 'Shopper' });
+      (await users.service.findByEmail(creds.email))!.role = 'ADMIN';
+    });
+
+    it('admin login accepts an admin and sets only the admin refresh cookie', async () => {
+      const { res, cookies } = makeRes();
+      const result = await authService.login(creds, res, 'admin');
+      expect(typeof result.accessToken).toBe('string');
+      expect(cookies[ADMIN_REFRESH_TOKEN_COOKIE]).toBeDefined();
+      expect(cookies[REFRESH_TOKEN_COOKIE]).toBeUndefined();
+    });
+
+    it('admin login rejects a customer with the generic credentials error', async () => {
+      const { res, cookies } = makeRes();
+      await expect(
+        authService.login({ email: 'shopper@example.com', password: 'StrongPass1' }, res, 'admin'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(Object.keys(cookies)).toHaveLength(0);
+    });
+
+    it('storefront login rejects an admin account', async () => {
+      const { res, cookies } = makeRes();
+      await expect(authService.login(creds, res)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(Object.keys(cookies)).toHaveLength(0);
+    });
+
+    it('an admin session refreshes on the portal but not on the storefront', async () => {
+      const { res, cookies } = makeRes();
+      await authService.login(creds, res, 'admin');
+      const token = cookies[ADMIN_REFRESH_TOKEN_COOKIE].value;
+
+      const ok = await authService.refresh(adminReq(token), makeRes().res, 'admin');
+      expect(typeof ok.accessToken).toBe('string');
+      // Same token presented to the storefront (e.g. in the request body) is refused
+      const body = { cookies: {}, body: { refreshToken: token } } as unknown as Request;
+      await expect(authService.refresh(body, makeRes().res)).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+
+    it('a customer session cannot refresh on the admin portal', async () => {
+      const { res, cookies } = makeRes();
+      await authService.login({ email: 'shopper@example.com', password: 'StrongPass1' }, res);
+      const token = cookies[REFRESH_TOKEN_COOKIE].value;
+      await expect(authService.refresh(adminReq(token), makeRes().res, 'admin')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
     });
   });
 });

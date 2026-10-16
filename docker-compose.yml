@@ -30,7 +30,8 @@ services:
       - ./apps/backend/.env
     environment:
       # Inside the compose network the DB host is "db", not localhost
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:-ecommerce}@db:5432/${POSTGRES_DB:-ecommerce}?schema=public
+      # BACKEND_DATABASE_URL (root .env) points the API at another database, e.g. the live one
+      DATABASE_URL: ${BACKEND_DATABASE_URL:-postgresql://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:-ecommerce}@db:5432/${POSTGRES_DB:-ecommerce}?schema=public}
       PORT: 3000
     ports:
       - "3000:3000"

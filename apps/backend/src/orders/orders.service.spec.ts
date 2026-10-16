@@ -130,10 +130,12 @@ function makeCreatedOrder(
 const SHIPPING = {
   shippingAddress: {
     name: 'Ada',
-    street: '12 Main Street',
-    city: 'Dhaka',
-    postalCode: '1000',
-    country: 'Bangladesh',
+    phone: '01712345678',
+    street: 'House 12, Road 5',
+    district: 'Dhaka',
+    upazila: 'Dhaka South City Corporation',
+    union: 'Dhanmondi',
+    postalCode: '1205',
   },
 };
 
@@ -226,6 +228,50 @@ describe('OrdersService.create', () => {
     expect(tx.cartItem.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user_1' },
     });
+  });
+
+  it('stores the canonical BD location and division on the order', async () => {
+    const alpha = makeProduct();
+    tx.cartItem.findMany.mockResolvedValue([makeCartItem(alpha, 1)]);
+    tx.order.create.mockResolvedValue(
+      makeCreatedOrder(
+        [{ productId: 'prod_alpha', quantity: 1, unitPrice: dec('25.50'), product: alpha }],
+        dec('25.50'),
+      ),
+    );
+
+    await service.create('user_1', {
+      shippingAddress: {
+        ...SHIPPING.shippingAddress,
+        district: 'lakshmipur',
+        upazila: 'lakshmipur sadar',
+        union: 'lakshmipur pourasabha',
+        postalCode: undefined,
+      },
+    });
+
+    const data = tx.order.create.mock.calls[0][0].data as {
+      shippingAddress: Record<string, unknown>;
+    };
+    expect(data.shippingAddress).toMatchObject({
+      district: 'Lakshmipur',
+      upazila: 'Lakshmipur Sadar',
+      union: 'Lakshmipur Pourasabha',
+      division: 'Chattagram',
+      city: 'Lakshmipur',
+      postalCode: '',
+      country: 'Bangladesh',
+      phone: '01712345678',
+    });
+  });
+
+  it('rejects an upazila that is not in the chosen district', async () => {
+    await expect(
+      service.create('user_1', {
+        shippingAddress: { ...SHIPPING.shippingAddress, district: 'Tangail', upazila: 'Savar' },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('rejects with 400 when the cart is empty', async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -224,7 +224,15 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const handleLogout = async () => {
     await logout();
     toast.success("Logged out");
-    router.push("/");
+    router.push("/admin/login");
+  };
+
+  // The store lives on the main domain: admin.example.com → example.com
+  const openStore = (e: ReactMouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    const { protocol, hostname, port } = window.location;
+    const host = hostname.replace(/^admin\./, "");
+    window.open(`${protocol}//${host}${port ? `:${port}` : ""}/`, "_blank", "noopener,noreferrer");
   };
 
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
@@ -333,7 +341,14 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               />
             </label>
             <div className="topbar-spacer" />
-            <a href="/" target="_blank" rel="noopener noreferrer" className="btn ghost store-link" title="Open the website in a new tab">
+            <a
+              href="/"
+              onClick={openStore}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn ghost store-link"
+              title="Open the website in a new tab"
+            >
               <ExternalLink />
               <span>View store</span>
             </a>

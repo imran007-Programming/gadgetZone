@@ -10,6 +10,7 @@
  */
 import { PrismaClient, Prisma } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
+import { assertLocalDatabase } from './local-only.js';
 
 try {
   process.loadEnvFile();
@@ -28,6 +29,8 @@ cloudinary.config({
   api_secret: CLOUDINARY_API_SECRET,
   secure: true,
 });
+
+assertLocalDatabase('catalog:real');
 
 const prisma = new PrismaClient();
 const USER_AGENT = 'gadgetlax-seed/1.0 (local dev; contact: admin@example.com)';

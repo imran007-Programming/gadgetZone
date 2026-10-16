@@ -2,37 +2,53 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsDefined,
-  IsNotEmpty,
+  IsIn,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+import {
+  IsBdPhone,
+  IsLocationName,
+  IsOptionalLocationName,
+  IsOptionalPostalCode,
+  IsPersonName,
+  IsStreetAddress,
+} from './address-fields.js';
 
 export class ShippingAddressDto {
   @ApiProperty({ example: 'Aarav Sharma' })
-  @IsString()
-  @IsNotEmpty()
+  @IsPersonName()
   name: string;
 
-  @ApiProperty({ example: '12 Main Street' })
-  @IsString()
-  @IsNotEmpty()
+  @ApiProperty({ example: '01712345678' })
+  @IsBdPhone()
+  phone: string;
+
+  @ApiProperty({ example: 'House 12, Road 5, Dhanmondi' })
+  @IsStreetAddress()
   street: string;
 
   @ApiProperty({ example: 'Dhaka' })
-  @IsString()
-  @IsNotEmpty()
-  city: string;
+  @IsLocationName()
+  district: string;
 
-  @ApiProperty({ example: '1000' })
-  @IsString()
-  @IsNotEmpty()
-  postalCode: string;
+  @ApiProperty({ example: 'Dhaka South City Corporation', description: 'Upazila or thana' })
+  @IsLocationName()
+  upazila: string;
 
-  @ApiProperty({ example: 'Bangladesh' })
-  @IsString()
-  @IsNotEmpty()
-  country: string;
+  @ApiPropertyOptional({ example: 'Dhanmondi', description: 'Union, pourashava or city area' })
+  @IsOptionalLocationName()
+  union?: string;
+
+  @ApiPropertyOptional({ example: '1205' })
+  @IsOptionalPostalCode()
+  postalCode?: string;
+
+  @ApiPropertyOptional({ example: 'Bangladesh', default: 'Bangladesh' })
+  @IsOptional()
+  @IsIn(['Bangladesh'], { message: 'We only deliver within Bangladesh' })
+  country?: string;
 }
 
 export class CreateOrderDto {

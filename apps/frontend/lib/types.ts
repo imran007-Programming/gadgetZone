@@ -118,7 +118,16 @@ export interface ToggleWishlistResult {
 
 export interface ShippingAddress {
   name: string;
+  /** House / road / village / area. */
   street: string;
+  /** Present on orders placed after the district/upazila/union fields were added. */
+  phone?: string;
+  email?: string | null;
+  union?: string | null;
+  upazila?: string;
+  district?: string;
+  division?: string;
+  /** Older orders only have this; newer ones mirror the district here. */
   city: string;
   postalCode: string;
   country: string;

@@ -135,8 +135,9 @@ export function RequireAuth({
   const forbidden = !isLoading && isAuthenticated && adminOnly && !isAdmin;
 
   useEffect(() => {
-    if (denied) router.replace("/login");
-  }, [denied, router]);
+    // Admin pages have their own sign-in on the admin portal
+    if (denied) router.replace(adminOnly ? "/admin/login" : "/login");
+  }, [denied, adminOnly, router]);
 
   useEffect(() => {
     if (forbidden) {

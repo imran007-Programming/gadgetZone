@@ -12,6 +12,8 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   apiClient,
+  authPath,
+  authScope,
   refreshAccessToken,
   setAccessToken,
   setStoredRefreshToken,
@@ -68,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // pull the server cart/wishlist into the stores.
   const sessionUser = sessionQuery.data ?? null;
   useEffect(() => {
-    if (sessionUser) {
+    if (sessionUser && authScope() === "customer") {
       useCartStore.getState().syncFromServer();
       useWishlistStore.getState().syncFromServer();
     }
@@ -79,13 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await apiClient.post<{
         accessToken: string;
         refreshToken?: string;
-      }>("/auth/login", {
+      }>(authPath("login"), {
         email,
         password,
       });
       setAccessToken(data.accessToken);
       if (data.refreshToken) setStoredRefreshToken(data.refreshToken);
       await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
+      // Admins have no cart or wishlist
+      if (authScope() === "admin") return;
       // Merge guest cart/wishlist into the server, then load server state.
       await Promise.all([
         useCartStore.getState().onLogin(),
@@ -106,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await apiClient.post("/auth/logout");
+      await apiClient.post(authPath("logout"));
     } catch {
       /* ignore — still clear local state */
     }
