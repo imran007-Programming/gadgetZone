@@ -1,0 +1,11 @@
+# Secrets: keep real env files out of git (only *.env.example is committed)
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+.next/
+*.tsbuildinfo
+*.log
+.DS_Store
