@@ -23,7 +23,8 @@ export function BannerSlide({
   /** Preview mode: image may be a local blob URL and the slide is not clickable. */
   preview?: boolean;
 }) {
-  const frame = "relative block aspect-[4/3] w-full shrink-0 sm:aspect-[21/9]";
+  // A little taller on mobile (2:1 trims ~7% off each side of the 21:9 artwork)
+  const frame = "relative block aspect-[2/1] w-full shrink-0 sm:aspect-[21/9]";
   const image = banner.imageUrl ? (
     <Image
       src={banner.imageUrl}
@@ -88,7 +89,7 @@ export default function BannerCarousel({ banners }: { banners: Banner[] }) {
   return (
     <section
       aria-label="Featured banners"
-      className="relative overflow-hidden rounded-3xl shadow-sm"
+      className="relative overflow-hidden rounded-lg shadow-sm sm:rounded-3xl"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={onTouchStart}

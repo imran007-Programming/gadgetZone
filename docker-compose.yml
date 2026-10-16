@@ -31,7 +31,6 @@ services:
     environment:
       # Inside the compose network the DB host is "db", not localhost
       DATABASE_URL: postgresql://${POSTGRES_USER:-ecommerce}:${POSTGRES_PASSWORD:-ecommerce}@db:5432/${POSTGRES_DB:-ecommerce}?schema=public
-      FRONTEND_URL: http://localhost:3001
       PORT: 3000
     ports:
       - "3000:3000"
@@ -43,8 +42,9 @@ services:
     build:
       context: ./apps/frontend
       args:
-        # Browser calls the API from the host, so this stays localhost
-        NEXT_PUBLIC_API_URL: http://localhost:3000
+        # Empty: the browser calls the API on the same host it opened the site on
+        # (localhost on this PC, the PC's LAN IP from a phone)
+        NEXT_PUBLIC_API_URL: ""
         # Local demo only: shows one-click admin/customer login on /login
         NEXT_PUBLIC_DEMO_LOGIN: "true"
     container_name: ecommerce-frontend

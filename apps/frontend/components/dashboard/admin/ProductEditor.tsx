@@ -13,6 +13,7 @@ import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { useObjectUrls } from "@/lib/use-object-urls";
 import { toNumber } from "@/lib/utils";
+import { buildCategoryTree } from "@/lib/categories";
 import type { AdminBrand, Category, Product, ProductImage } from "@/lib/types";
 import { Card, CardHead, Field, Switch } from "./kit";
 
@@ -187,11 +188,17 @@ export default function ProductEditor({ product, categories }: { product?: Produ
               <Field label="Category" error={errors.categoryId?.message}>
                 <select {...register("categoryId")}>
                   <option value="">Select…</option>
-                  {categories.map((c) => (
+                  {buildCategoryTree(categories).map((c) => [
                     <option key={c.id} value={c.id}>
                       {c.name}
-                    </option>
-                  ))}
+                    </option>,
+                    ...c.children.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {"   ↳ "}
+                        {sub.name}
+                      </option>
+                    )),
+                  ])}
                 </select>
               </Field>
               <Field label="Brand" error={errors.brandId?.message}>

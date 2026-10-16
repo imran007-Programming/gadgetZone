@@ -111,3 +111,32 @@ body {
     font-size: 16px !important;
   }
 }
+
+/* react-toastify: site font, rounded cards, the same green/red as before */
+:root {
+  --toastify-font-family: var(--font-sans);
+  --toastify-toast-bd-radius: 14px;
+  --toastify-color-success: #059669;
+  --toastify-color-error: #e11d48;
+  --toastify-icon-color-success: #059669;
+  --toastify-icon-color-error: #e11d48;
+  --toastify-color-progress-success: #059669;
+  --toastify-color-progress-error: #e11d48;
+  --toastify-color-progress-info: #ff5c38;
+  --toastify-icon-color-info: #ff5c38;
+}
+.Toastify__toast {
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+/* Phones: inset, rounded cards instead of a full-width strip */
+@media only screen and (max-width: 480px) {
+  .Toastify__toast-container {
+    padding: 8px 12px;
+  }
+  .Toastify__toast {
+    border-radius: 14px;
+    margin-bottom: 8px;
+  }
+}

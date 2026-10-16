@@ -83,7 +83,7 @@ export default function ProductDetail({
       <BackLink href="/products" label="Back to products" />
       <div className="grid gap-8 md:grid-cols-2">
         <div className="flex flex-col gap-3">
-          <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 ring-1 ring-zinc-200">
+          <div className="relative aspect-square overflow-hidden rounded-2xl bg-white ring-1 ring-zinc-200">
             {gallery[activeImage] ? (
               <Image
                 key={gallery[activeImage]}
@@ -91,7 +91,7 @@ export default function ProductDetail({
                 alt={p.name}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover"
+                className="object-contain p-4 sm:p-6"
                 priority
               />
             ) : (
@@ -108,11 +108,11 @@ export default function ProductDetail({
                   onClick={() => setActiveImage(i)}
                   aria-label={`Show image ${i + 1}`}
                   aria-pressed={i === activeImage}
-                  className={`relative aspect-square overflow-hidden rounded-lg bg-zinc-100 ring-2 transition ${
+                  className={`relative aspect-square overflow-hidden rounded-lg bg-white ring-2 transition ${
                     i === activeImage ? "ring-primary-600" : "ring-transparent hover:ring-zinc-300"
                   }`}
                 >
-                  <Image src={url} alt="" fill sizes="120px" className="object-cover" />
+                  <Image src={url} alt="" fill sizes="120px" className="object-contain p-1" />
                 </button>
               ))}
             </div>
@@ -136,7 +136,7 @@ export default function ProductDetail({
             </p>
           )}
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 sm:text-3xl sm:font-bold">
               {p.name}
             </h1>
             {/* Brand badge: opens the brand page with its other products */}

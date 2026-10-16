@@ -56,7 +56,7 @@ export default function CartPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
+        <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl sm:font-bold text-zinc-900">
           Cart ({itemCount} item{itemCount === 1 ? "" : "s"})
         </h1>
         <button
@@ -77,14 +77,14 @@ export default function CartPage() {
             >
               <Link
                 href={`/products/${item.slug}`}
-                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-zinc-100"
+                className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200"
               >
                 <Image
                   src={item.imageUrl}
                   alt={item.name}
                   fill
                   sizes="80px"
-                  className="object-cover"
+                  className="object-contain p-1"
                 />
               </Link>
               <div className="flex min-w-0 flex-1 flex-col">

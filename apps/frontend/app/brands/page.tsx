@@ -36,7 +36,7 @@ export default async function BrandsPage() {
 
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-primary-600">Shop by brand</p>
-        <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-zinc-900">All brands</h1>
+        <h1 className="mt-1 font-display text-xl font-semibold tracking-tight sm:text-3xl sm:font-bold text-zinc-900">All brands</h1>
         <p className="mt-2 text-sm text-zinc-500">
           {brands.length} brand{brands.length === 1 ? "" : "s"} — pick one to see all its products.
         </p>

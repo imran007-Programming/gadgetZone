@@ -81,16 +81,16 @@ function SectionHeader({
   return (
     <div className="mb-5 flex items-end justify-between gap-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary-700">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-primary-700 sm:text-xs">
           {eyebrow}
         </p>
-        <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-zinc-900">
+        <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-zinc-900 sm:text-2xl sm:font-bold">
           {title}
         </h2>
       </div>
       <Link
         href={href}
-        className="shrink-0 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-primary-600 hover:text-primary-700"
+        className="shrink-0 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium sm:px-4 sm:py-2 sm:text-sm text-zinc-700 shadow-sm transition hover:border-primary-600 hover:text-primary-700"
       >
         View all →
       </Link>
@@ -120,19 +120,19 @@ export default async function HomePage() {
             Categories are unavailable right now.
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-            {categories.map((c) => {
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 lg:grid-cols-7">
+            {categories.filter((c) => !c.parentId).map((c) => {
               const Icon = CATEGORY_ICONS[c.slug] ?? Plug;
               return (
                 <Link
                   key={c.id}
                   href={`/products?category=${encodeURIComponent(c.slug)}`}
-                  className="group flex flex-col items-center gap-2.5 rounded-2xl bg-white p-4 text-center shadow-sm ring-1 ring-zinc-200/80 transition duration-300 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary-600/50 sm:p-5"
+                  className="group flex flex-col items-center gap-1.5 rounded-xl bg-white px-1 py-2.5 text-center sm:gap-2.5 sm:rounded-2xl shadow-sm ring-1 ring-zinc-200/80 transition duration-300 hover:-translate-y-0.5 hover:shadow-md hover:ring-primary-600/50 sm:p-5"
                 >
-                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-100 text-primary-700 transition group-hover:bg-primary-600 group-hover:text-white">
-                    <Icon className="h-6 w-6" strokeWidth={1.8} />
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 sm:h-12 sm:w-12 sm:rounded-2xl text-primary-700 transition group-hover:bg-primary-600 group-hover:text-white">
+                    <Icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.8} />
                   </span>
-                  <span className="text-xs font-medium leading-tight text-zinc-700">
+                  <span className="text-[10px] font-medium leading-tight text-zinc-700 sm:text-xs">
                     {c.name}
                   </span>
                 </Link>

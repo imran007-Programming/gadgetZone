@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Link2, Package, Pencil, Plus, Trash2 } f
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { useObjectUrl } from "@/lib/use-object-urls";
+import { buildCategoryTree } from "@/lib/categories";
 import type { AdminBanner, Category } from "@/lib/types";
 import { BannerSlide } from "@/components/BannerCarousel";
 import {
@@ -416,11 +417,16 @@ function BannerEditor({ banner, onClose }: { banner: AdminBanner | null; onClose
           />
           <datalist id="banner-links">
             <option value="/products">All products</option>
-            {(categoriesQuery.data ?? []).map((c) => (
+            {buildCategoryTree(categoriesQuery.data ?? []).flatMap((c) => [
               <option key={c.id} value={`/products?category=${c.slug}`}>
                 {c.name}
-              </option>
-            ))}
+              </option>,
+              ...c.children.map((sub) => (
+                <option key={sub.id} value={`/products?category=${sub.slug}`}>
+                  {`${c.name} › ${sub.name}`}
+                </option>
+              )),
+            ])}
           </datalist>
         </Field>
       )}

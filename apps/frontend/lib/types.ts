@@ -23,6 +23,27 @@ export interface Category {
   name: string;
   slug: string;
   description?: string | null;
+  /** Top-level category id for a subcategory; null for a top-level category. */
+  parentId?: string | null;
+  /** Display order among siblings (lower first). */
+  position?: number;
+  _count?: { products: number };
+}
+
+/** A top-level category with its subcategories. */
+export interface CategoryNode extends Category {
+  children: Category[];
+}
+
+/** Storefront settings (GET /settings), edited in Admin → Site settings. */
+export interface SiteSettings {
+  topbarEnabled: boolean;
+  topbarLeftTitle: string;
+  topbarLeftText: string;
+  topbarLeftLink: string;
+  announcement: string;
+  announcementLink: string;
+  supportPhone: string;
 }
 
 export interface ProductImage {

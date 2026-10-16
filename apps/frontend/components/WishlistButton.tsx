@@ -34,9 +34,12 @@ function normalize(p: WishlistProduct) {
 export default function WishlistButton({
   product,
   className = "",
+  compact = false,
 }: {
   product: WishlistProduct;
   className?: string;
+  /** Smaller on mobile (product cards); full size from sm up. */
+  compact?: boolean;
 }) {
   const toggle = useWishlistStore((s) => s.toggle);
   const toast = useToast();
@@ -87,14 +90,14 @@ export default function WishlistButton({
       onClick={handleClick}
       aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
       aria-pressed={active}
-      className={`flex h-9 w-9 items-center justify-center rounded-full shadow-sm ring-1 backdrop-blur transition ${
+      className={`flex ${compact ? "h-7 w-7 sm:h-9 sm:w-9" : "h-9 w-9"} items-center justify-center rounded-full shadow-sm ring-1 backdrop-blur transition ${
         active
           ? "bg-primary-600 text-white ring-primary-600"
           : "bg-white/90 text-zinc-500 ring-zinc-200 hover:text-primary-600 hover:ring-primary-600/60"
       } ${className}`}
     >
       <Heart
-        className="h-[18px] w-[18px]"
+        className={compact ? "h-3.5 w-3.5 sm:h-[18px] sm:w-[18px]" : "h-[18px] w-[18px]"}
         fill={active ? "currentColor" : "none"}
         strokeWidth={2}
       />

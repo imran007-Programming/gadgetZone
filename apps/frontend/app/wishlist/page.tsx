@@ -64,7 +64,7 @@ export function WishlistContent() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
+      <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl sm:font-bold text-zinc-900">
         Wishlist ({items.length} item{items.length === 1 ? "" : "s"})
       </h1>
 
@@ -83,14 +83,14 @@ export function WishlistContent() {
               </div>
               <Link
                 href={`/products/${item.slug}`}
-                className="relative aspect-[4/3] overflow-hidden bg-zinc-100"
+                className="relative aspect-[4/3] overflow-hidden bg-white"
               >
                 <Image
                   src={item.imageUrl}
                   alt={item.name}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover transition duration-500 group-hover:scale-105"
+                  className="object-contain p-3 transition duration-500 group-hover:scale-105"
                   loading="lazy"
                 />
                 {outOfStock && (

@@ -67,7 +67,7 @@ function OrderDetailContent() {
       <BackLink href="/orders" label="Back to orders" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
+        <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl sm:font-bold text-zinc-900">
           Order <span className="font-mono">#{order.id.slice(0, 8)}</span>
         </h1>
         <StatusBadge status={order.status} />
@@ -81,13 +81,13 @@ function OrderDetailContent() {
           {order.items.map((item) => (
             <li key={item.id} className="flex items-center gap-3 py-3">
               {item.product?.imageUrl && (
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-zinc-200">
                   <Image
                     src={item.product.imageUrl}
                     alt={item.product.name}
                     fill
                     sizes="48px"
-                    className="object-cover"
+                    className="object-contain p-0.5"
                   />
                 </div>
               )}

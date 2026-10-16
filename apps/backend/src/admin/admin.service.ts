@@ -252,33 +252,56 @@ export class AdminService {
 
   async createCategory(dto: CreateCategoryDto) {
     await this.assertCategorySlugFree(dto.slug);
+    if (dto.parentId) await this.assertValidCategoryParent(dto.parentId);
     return this.prisma.category.create({
       data: {
         name: dto.name,
         slug: dto.slug,
         description: dto.description,
+        parentId: dto.parentId ?? null,
+        position: dto.position ?? 0,
       },
     });
   }
 
   async updateCategory(id: string, dto: UpdateCategoryDto) {
-    const category = await this.prisma.category.findUnique({ where: { id } });
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      include: { _count: { select: { children: true } } },
+    });
     if (!category) {
       throw new NotFoundException(`Category "${id}" not found`);
     }
     if (dto.slug !== undefined && dto.slug !== category.slug) {
       await this.assertCategorySlugFree(dto.slug);
     }
+    if (dto.parentId) {
+      if (dto.parentId === id) {
+        throw new BadRequestException('A category cannot be its own parent');
+      }
+      if (category._count.children > 0) {
+        throw new BadRequestException(
+          `"${category.name}" has subcategories, so it cannot become a subcategory itself`,
+        );
+      }
+      await this.assertValidCategoryParent(dto.parentId);
+    }
     return this.prisma.category.update({ where: { id }, data: dto });
   }
 
   /**
-   * Deletes a category only when zero products reference it; otherwise 409.
+   * Deletes a category only when no products and no subcategories reference it; otherwise 409.
    */
   async deleteCategory(id: string) {
     const category = await this.prisma.category.findUnique({ where: { id } });
     if (!category) {
       throw new NotFoundException(`Category "${id}" not found`);
+    }
+    const childCount = await this.prisma.category.count({ where: { parentId: id } });
+    if (childCount > 0) {
+      throw new ConflictException(
+        `Cannot delete category "${category.name}": it still has ${childCount} subcategor${childCount === 1 ? 'y' : 'ies'}`,
+      );
     }
     const productCount = await this.prisma.product.count({
       where: { categoryId: id },
@@ -620,6 +643,19 @@ export class AdminService {
       throw new NotFoundException(`User "${id}" not found`);
     }
     return user;
+  }
+
+  /** Subcategories go one level deep: the parent must exist and be top-level. */
+  private async assertValidCategoryParent(parentId: string) {
+    const parent = await this.prisma.category.findUnique({ where: { id: parentId } });
+    if (!parent) {
+      throw new NotFoundException(`Parent category "${parentId}" not found`);
+    }
+    if (parent.parentId) {
+      throw new BadRequestException(
+        `"${parent.name}" is already a subcategory; pick a top-level category as the parent`,
+      );
+    }
   }
 
   private async assertCategoryExists(categoryId: string) {

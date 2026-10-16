@@ -93,7 +93,7 @@ export default async function BrandPage({ params, searchParams }: Props) {
             )}
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display text-3xl font-bold tracking-tight text-zinc-900">{brand.name}</h1>
+            <h1 className="font-display text-xl font-semibold tracking-tight sm:text-3xl sm:font-bold text-zinc-900">{brand.name}</h1>
             {brand.description && <p className="mt-1 max-w-2xl text-sm text-zinc-500">{brand.description}</p>}
           </div>
           <p className="text-sm text-zinc-500">

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useCartStore, selectItemCount } from "@/lib/store/cart";
+import { useMobileMenuStore } from "@/lib/store/mobileMenu";
 
 /**
  * Bottom mobile navigation bar (visible only on mobile).
@@ -20,6 +21,7 @@ export default function MobileNav() {
   const { isAuthenticated, isAdmin } = useAuth();
   const openCartDrawer = useCartStore((s) => s.openDrawer);
   const cartCount = useCartStore(selectItemCount);
+  const openMenu = useMobileMenuStore((s) => s.open);
 
   const accountHref = isAdmin ? "/admin" : isAuthenticated ? "/dashboard" : "/login";
 
@@ -41,10 +43,10 @@ export default function MobileNav() {
           <User className="h-6 w-6" strokeWidth={1.8} />
           My account
         </Link>
-        <Link href="/products" className={itemCls(isActive("/products"))}>
+        <button onClick={openMenu} className={itemCls(false)} aria-label="Open menu">
           <Menu className="h-6 w-6" strokeWidth={1.8} />
           Menu
-        </Link>
+        </button>
         <button
           onClick={openCartDrawer}
           className={itemCls(false)}

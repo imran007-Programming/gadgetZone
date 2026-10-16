@@ -6,6 +6,7 @@ import ConditionalHeader from "./ConditionalHeader";
 import ConditionalFooter from "./ConditionalFooter";
 import CartDrawer from "./CartDrawer";
 import MobileNav from "./MobileNav";
+import MobileSidebar from "./MobileSidebar";
 import BackToTop from "./BackToTop";
 
 function isDashboardRoute(pathname: string) {
@@ -18,7 +19,7 @@ function isDashboardRoute(pathname: string) {
 }
 
 /**
- * Website chrome: header, footer, cart drawer, mobile nav.
+ * Website chrome: header, footer, cart drawer, mobile nav + sidebar.
  * Dashboard routes get none of the website chrome — they have
  * their own dedicated shell and take the full screen.
  */
@@ -39,6 +40,7 @@ export default function SiteChrome({ children }: { children: ReactNode }) {
       <ConditionalFooter />
       <CartDrawer />
       <MobileNav />
+      <MobileSidebar />
       <BackToTop />
     </>
   );

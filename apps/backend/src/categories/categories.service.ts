@@ -5,9 +5,10 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class CategoriesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Flat list (top-level and subcategories); clients build the tree from parentId. */
   async findAll() {
     return this.prisma.category.findMany({
-      orderBy: { name: 'asc' },
+      orderBy: [{ position: 'asc' }, { name: 'asc' }],
       include: { _count: { select: { products: true } } },
     });
   }

@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProductSort, QueryProductsDto } from './dto/query-products.dto.js';
 
-const CATEGORY_SELECT = { id: true, name: true, slug: true } as const;
+const CATEGORY_SELECT = { id: true, name: true, slug: true, parentId: true } as const;
 
 /** Category plus the gallery, ordered for display. */
 const PRODUCT_INCLUDE = {
@@ -54,7 +54,8 @@ export class ProductsService {
       }));
     }
     if (category) {
-      where.category = { slug: category };
+      // A top-level category also lists the products of its subcategories
+      where.category = { OR: [{ slug: category }, { parent: { slug: category } }] };
     }
     const brandSlugs = brand?.split(",").map((b) => b.trim()).filter(Boolean) ?? [];
     if (brandSlugs.length) {

@@ -9,6 +9,11 @@
  *
  * Products that already have gallery images are skipped, so the script can be
  * re-run safely after adding more folders. Run with: npm run images:import
+ *
+ * --replace swaps the gallery of every product that has a folder for the
+ * folder's photos (npm run images:import -- --replace). Only this database's
+ * rows are removed: the old Cloudinary files stay, since another database
+ * (e.g. the live one) may still point at them.
  */
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -38,6 +43,7 @@ cloudinary.config({
 const prisma = new PrismaClient();
 const IMAGE_ROOT = path.resolve('product-images');
 const IMAGE_EXT = /\.(jpe?g|png|webp)$/i;
+const REPLACE = process.argv.includes('--replace');
 
 async function listImages(dir: string): Promise<string[]> {
   try {
@@ -66,7 +72,7 @@ async function main() {
       noFolder.push(product.slug);
       continue;
     }
-    if (product._count.images > 0) {
+    if (product._count.images > 0 && !REPLACE) {
       alreadyDone++;
       continue;
     }
@@ -83,6 +89,7 @@ async function main() {
     uploadedCount += uploaded.length;
 
     await prisma.$transaction([
+      prisma.productImage.deleteMany({ where: { productId: product.id } }),
       prisma.productImage.createMany({
         data: uploaded.map((img, position) => ({
           productId: product.id,

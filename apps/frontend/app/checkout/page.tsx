@@ -186,7 +186,7 @@ function CheckoutContent() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">
+      <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl sm:font-bold text-zinc-900">
         Checkout
       </h1>
 

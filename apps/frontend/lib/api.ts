@@ -20,7 +20,8 @@ import Cookies from "js-cookie";
 const API_URL =
   (typeof window === "undefined" && process.env.API_INTERNAL_URL?.replace(/\/$/, "")) ||
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:3000";
+  // Dev fallback: same host as the page, so a phone on the LAN reaches the PC's API
+  (typeof window !== "undefined" ? `${window.location.protocol}//${window.location.hostname}:3000` : "http://localhost:3000");
 
 let accessToken: string | null = null;
 

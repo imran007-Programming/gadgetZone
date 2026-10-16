@@ -22,8 +22,10 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "prisma:seed": "tsx prisma/seed.ts",
     "images:import": "tsx prisma/import-product-images.ts",
+    "catalog:subcategories": "tsx prisma/add-subcategory-catalog.ts",
     "images:sample": "tsx prisma/fetch-sample-images.ts",
-    "catalog:real": "tsx prisma/load-real-catalog.ts"
+    "catalog:real": "tsx prisma/load-real-catalog.ts",
+    "catalog:sync-live": "tsx prisma/sync-to-live.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

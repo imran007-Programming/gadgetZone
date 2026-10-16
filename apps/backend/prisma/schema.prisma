@@ -21,62 +21,85 @@ enum OrderStatus {
 }
 
 model User {
-  id             String     @id @default(cuid())
-  email          String     @unique
-  passwordHash   String
-  name           String
-  role           Role       @default(CUSTOMER)
+  id                   String          @id @default(cuid())
+  email                String          @unique
+  passwordHash         String
+  name                 String
+  role                 Role            @default(CUSTOMER)
   // Phase 5: admins can disable accounts; disabled users cannot log in
-  isActive       Boolean    @default(true)
+  isActive             Boolean         @default(true)
   // Phase 2: hashed refresh token for rotation + revocation
-  refreshTokenHash String?
+  refreshTokenHash     String?
   // Previous refresh token, still accepted for a short grace period after rotation
   // (a reload can drop the response that carried the new cookie)
   prevRefreshTokenHash String?
   refreshRotatedAt     DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  cartItems      CartItem[]
-  orders         Order[]
-  wishlistItems  WishlistItem[]
-  reviews        Review[]
-  returnRequests ReturnRequest[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  cartItems            CartItem[]
+  orders               Order[]
+  wishlistItems        WishlistItem[]
+  reviews              Review[]
+  returnRequests       ReturnRequest[]
 
   @@index([role])
 }
 
+/// Two levels: a top-level category (parentId null) and its subcategories.
 model Category {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
-  slug        String    @unique
+  slug        String     @unique
   description String?
+  /// Display order among siblings (lower first)
+  position    Int        @default(0)
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Category[] @relation("CategoryTree")
   products    Product[]
 
   @@index([slug])
+  @@index([parentId])
+}
+
+/// Single-row storefront settings (id "default"), edited in Admin → Site settings.
+model SiteSetting {
+  id               String   @id @default("default")
+  topbarEnabled    Boolean  @default(true)
+  /// Left side of the top bar, e.g. "Corporate & Wholesale"
+  topbarLeftTitle  String   @default("Corporate & Wholesale")
+  topbarLeftText   String   @default("Get Special Business Pricing")
+  topbarLeftLink   String   @default("/help")
+  /// Center of the top bar: coupon or announcement (hidden when empty)
+  announcement     String   @default("")
+  announcementLink String   @default("")
+  /// Right side of the top bar
+  supportPhone     String   @default("")
+  updatedAt        DateTime @updatedAt
 }
 
 model Product {
-  id          String    @id @default(cuid())
-  name        String
-  slug        String    @unique
-  description String
-  price       Decimal   @db.Decimal(10, 2)
-  comparePrice Decimal? @db.Decimal(10, 2)
-  stock       Int       @default(0)
-  imageUrl    String
-  isActive    Boolean   @default(true)
-  categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id])
-  brandId     String?
-  brand       Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  cartItems   CartItem[]
-  orderItems  OrderItem[]
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  description   String
+  price         Decimal        @db.Decimal(10, 2)
+  comparePrice  Decimal?       @db.Decimal(10, 2)
+  stock         Int            @default(0)
+  imageUrl      String
+  isActive      Boolean        @default(true)
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id])
+  brandId       String?
+  brand         Brand?         @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
   wishlistItems WishlistItem[]
-  images      ProductImage[]
-  reviews     Review[]
-  banners     Banner[]
+  images        ProductImage[]
+  reviews       Review[]
+  banners       Banner[]
 
   @@index([slug])
   @@index([categoryId])
@@ -110,24 +133,24 @@ model CartItem {
 }
 
 model Order {
-  id              String      @id @default(cuid())
+  id              String          @id @default(cuid())
   userId          String?
-  user            User?       @relation(fields: [userId], references: [id])
-  status          OrderStatus @default(PENDING)
-  totalAmount     Decimal     @db.Decimal(10, 2)
+  user            User?           @relation(fields: [userId], references: [id])
+  status          OrderStatus     @default(PENDING)
+  totalAmount     Decimal         @db.Decimal(10, 2)
   shippingAddress Json
   // Guest checkout fields (null for logged-in users)
   guestName       String?
   guestPhone      String?
   guestEmail      String?
-  paymentMethod   String      @default("cod")
+  paymentMethod   String          @default("cod")
   // Discount applied at checkout (0 when no coupon). totalAmount is already net of it.
-  discountAmount  Decimal     @default(0) @db.Decimal(10, 2)
+  discountAmount  Decimal         @default(0) @db.Decimal(10, 2)
   couponId        String?
-  coupon          Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  coupon          Coupon?         @relation(fields: [couponId], references: [id], onDelete: SetNull)
   couponCode      String?
   returnRequests  ReturnRequest[]
-  createdAt       DateTime    @default(now())
+  createdAt       DateTime        @default(now())
   items           OrderItem[]
 
   @@index([userId])
@@ -253,18 +276,18 @@ model Banner {
 
 /// Product brand (Sony, Apple, …), managed from the admin dashboard.
 model Brand {
-  id           String    @id @default(cuid())
-  name         String
-  slug         String    @unique
-  description  String?
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  description    String?
   // Cloudinary logo; null shows the brand initials instead
-  logoUrl      String?
-  logoPublicId String?
+  logoUrl        String?
+  logoPublicId   String?
   // Wide cover image shown at the top of the brand page
   bannerUrl      String?
   bannerPublicId String?
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  products     Product[]
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  products       Product[]
 }

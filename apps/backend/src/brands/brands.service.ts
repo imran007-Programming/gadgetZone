@@ -25,7 +25,10 @@ export class BrandsService {
   async publicList(categorySlug?: string) {
     const productWhere = {
       isActive: true,
-      ...(categorySlug && { category: { slug: categorySlug } }),
+      // A top-level category also covers its subcategories' products
+      ...(categorySlug && {
+        category: { OR: [{ slug: categorySlug }, { parent: { slug: categorySlug } }] },
+      }),
     };
     const brands = await this.prisma.brand.findMany({
       where: {

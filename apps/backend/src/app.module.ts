@@ -17,6 +17,7 @@ import { CouponsModule } from './coupons/coupons.module.js';
 import { ReviewsModule } from './reviews/reviews.module.js';
 import { ReturnsModule } from './returns/returns.module.js';
 import { BannersModule } from './banners/banners.module.js';
+import { SettingsModule } from './settings/settings.module.js';
 import { BrandsModule } from './brands/brands.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { CloudinaryModule } from './cloudinary/cloudinary.module.js';
@@ -53,6 +54,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
     ReviewsModule,
     ReturnsModule,
     BannersModule,
+    SettingsModule,
     BrandsModule,
   ],
   controllers: [AppController],

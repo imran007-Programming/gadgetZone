@@ -23,6 +23,7 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelTop,
   RotateCcw,
   Search,
   ShoppingBag,
@@ -79,7 +80,10 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   },
   {
     title: "STOREFRONT",
-    items: [{ href: "/admin/banners", label: "Banners", icon: GalleryHorizontal }],
+    items: [
+      { href: "/admin/banners", label: "Banners", icon: GalleryHorizontal },
+      { href: "/admin/settings", label: "Site settings", icon: PanelTop },
+    ],
   },
   {
     title: "SYSTEM",
@@ -102,6 +106,7 @@ const ROUTE_META: Record<string, { title: string; sub: string }> = {
   "/admin/reports": { title: "Reports", sub: "Exports · Snapshots · Date ranges" },
   "/admin/brands": { title: "Brands", sub: "Logos · Visibility · Products" },
   "/admin/banners": { title: "Homepage Banners", sub: "Carousel · Schedule · Order" },
+  "/admin/settings": { title: "Site settings", sub: "Top bar · Announcement · Support phone" },
 };
 
 const SIDEBAR_KEY = "gadgetlax-admin-sidebar";

@@ -31,7 +31,7 @@ export default function HelpPage() {
         <p className="text-xs font-semibold uppercase tracking-widest text-primary-700">
           Support
         </p>
-        <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-zinc-900">
+        <h1 className="mt-1 font-display text-xl font-semibold tracking-tight sm:text-3xl sm:font-bold text-zinc-900">
           We&apos;re here to help
         </h1>
         <p className="mt-2 text-sm text-zinc-600">

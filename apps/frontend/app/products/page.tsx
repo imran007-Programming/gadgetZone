@@ -8,7 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronRight, X } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { buildQuery, formatPrice } from "@/lib/utils";
-import type { Brand, Category, ProductsResponse, ProductSort } from "@/lib/types";
+import type { Brand, ProductsResponse, ProductSort } from "@/lib/types";
+import { useCategoryTree } from "@/lib/categories";
 import ProductCard from "@/components/ProductCard";
 import { EmptyState, ErrorState, Pagination, Spinner } from "@/components/ui";
 
@@ -80,11 +81,7 @@ function ProductsContent() {
     queryFn: () => apiClient.get<ProductsResponse>(`/products${queryString}`),
   });
 
-  const categoriesQuery = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => apiClient.get<Category[]>("/categories"),
-    staleTime: 10 * 60 * 1000,
-  });
+  const categoriesQuery = useCategoryTree();
 
   // In a category, only brands that have products there (counts for that category)
   const brandsQuery = useQuery({
@@ -134,20 +131,44 @@ function ProductsContent() {
                 All Products
               </Link>
             </li>
-            {(categoriesQuery.data ?? []).map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/products?category=${c.slug}`}
-                  className={`block py-1 text-sm transition ${
-                    params.category === c.slug
-                      ? "font-semibold text-primary-600"
-                      : "text-zinc-500 hover:text-primary-600"
-                  }`}
-                >
-                  {c.name}
-                </Link>
-              </li>
-            ))}
+            {categoriesQuery.tree.map((c) => {
+              // Subcategories show while their category (or one of them) is selected
+              const inTree = params.category === c.slug || c.children.some((sub) => sub.slug === params.category);
+              return (
+                <li key={c.id}>
+                  <Link
+                    href={`/products?category=${c.slug}`}
+                    className={`block py-1 text-sm transition ${
+                      params.category === c.slug
+                        ? "font-semibold text-primary-600"
+                        : inTree
+                          ? "font-medium text-zinc-800"
+                          : "text-zinc-500 hover:text-primary-600"
+                    }`}
+                  >
+                    {c.name}
+                  </Link>
+                  {inTree && c.children.length > 0 && (
+                    <ul className="mb-1 ml-3 space-y-0.5 border-l border-zinc-200 pl-3">
+                      {c.children.map((sub) => (
+                        <li key={sub.id}>
+                          <Link
+                            href={`/products?category=${sub.slug}`}
+                            className={`block py-1 text-[13px] transition ${
+                              params.category === sub.slug
+                                ? "font-semibold text-primary-600"
+                                : "text-zinc-500 hover:text-primary-600"
+                            }`}
+                          >
+                            {sub.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 

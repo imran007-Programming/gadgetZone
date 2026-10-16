@@ -64,7 +64,7 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-md">
       <div className="rounded-2xl bg-zinc-50 p-8 ring-1 ring-zinc-200">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900">Create an account</h1>
+        <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl sm:font-bold text-zinc-900">Create an account</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Already have one?{" "}
           <Link href="/login" className="font-medium text-primary-600 hover:underline">

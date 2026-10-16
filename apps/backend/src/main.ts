@@ -22,7 +22,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor());
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3001',
+    // Comma-separated list, e.g. "http://localhost:3001,http://192.168.68.50:3001"
+    origin: (process.env.FRONTEND_URL ?? 'http://localhost:3001').split(',').map((o) => o.trim()),
     credentials: true,
   });
 

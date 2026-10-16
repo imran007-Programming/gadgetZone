@@ -121,19 +121,19 @@ export default function SearchBar({ className = "" }: { className?: string }) {
             aria-expanded={showPanel}
             aria-autocomplete="list"
             autoComplete="off"
-            className="w-full rounded-full border border-zinc-200 bg-white py-3 pl-5 pr-14 text-sm text-zinc-900 placeholder:text-zinc-400 transition focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20"
+            className="w-full rounded-full border border-zinc-200 bg-white py-2 pl-4 pr-11 text-sm md:py-3 md:pl-5 md:pr-14 text-zinc-900 placeholder:text-zinc-400 transition focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20"
           />
           {status === "loading" ? (
-            <span className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-primary-600">
-              <Loader2 className="h-4 w-4 animate-spin text-white" />
+            <span className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-primary-600 md:right-1.5 md:h-9 md:w-9">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-white md:h-4 md:w-4" />
             </span>
           ) : (
             <button
               type="submit"
               aria-label="Search"
-              className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-primary-600 text-white shadow-sm transition hover:bg-primary-700"
+              className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-primary-600 text-white shadow-sm transition hover:bg-primary-700 md:right-1.5 md:h-9 md:w-9"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-3.5 w-3.5 md:h-4 md:w-4" />
             </button>
           )}
         </div>
@@ -165,9 +165,9 @@ export default function SearchBar({ className = "" }: { className?: string }) {
                         onMouseEnter={() => setActive(i)}
                         className={`flex items-center gap-3 px-3 py-3 transition ${i === active ? "bg-primary-50" : "hover:bg-zinc-50"}`}
                       >
-                        <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-50">
+                        <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-zinc-200">
                           {p.imageUrl && (
-                            <Image src={p.imageUrl} alt={p.name} fill sizes="56px" className="object-cover" />
+                            <Image src={p.imageUrl} alt={p.name} fill sizes="56px" className="object-contain p-1" />
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
