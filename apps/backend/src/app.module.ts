@@ -39,7 +39,10 @@ import { RolesGuard } from './common/guards/roles.guard.js';
         return value;
       },
     }),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 5 }]),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 5 }],
+      errorMessage: 'Too many requests. Please wait a minute and try again.',
+    }),
     PrismaModule,
     CloudinaryModule,
     AuthModule,

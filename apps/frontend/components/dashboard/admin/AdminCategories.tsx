@@ -9,6 +9,7 @@ import { CornerDownRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { buildCategoryTree } from "@/lib/categories";
+import { CACHE_TAGS, STOREFRONT_REFRESH_FAILED, revalidateCache } from "@/lib/cache-tags";
 import type { Category } from "@/lib/types";
 import { Card, CardHead, ErrorBox, Field, Kpi, Loading, Modal, bdNumber, matchesSearch, useAdminSearch } from "./kit";
 import { useAdminProducts, useCategories } from "./AdminProducts";
@@ -41,9 +42,10 @@ export default function AdminCategories() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.del(`/admin/categories/${id}`),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success("Category deleted");
+      if (!(await revalidateCache(CACHE_TAGS.categories))) toast.error(STOREFRONT_REFRESH_FAILED);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -232,10 +234,11 @@ function CategoryModal({
         ? apiClient.patch<Category>(`/admin/categories/${category.id}`, body)
         : apiClient.post<Category>("/admin/categories", body);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       toast.success(category ? "Category updated" : "Category created");
       onClose();
+      if (!(await revalidateCache(CACHE_TAGS.categories))) toast.error(STOREFRONT_REFRESH_FAILED);
     },
     onError: (e: Error) => toast.error(e.message),
   });

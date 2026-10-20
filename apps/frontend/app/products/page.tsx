@@ -4,14 +4,14 @@ import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronRight, X } from "lucide-react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Check, ChevronRight, Loader2, X } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { buildQuery, formatPrice } from "@/lib/utils";
 import type { Brand, ProductsResponse, ProductSort } from "@/lib/types";
 import { useCategoryTree } from "@/lib/categories";
 import ProductCard from "@/components/ProductCard";
-import { EmptyState, ErrorState, Pagination, Spinner } from "@/components/ui";
+import { EmptyState, ErrorState, Spinner } from "@/components/ui";
 
 const SORTS: { value: ProductSort; label: string }[] = [
   { value: "newest", label: "Sort by latest" },
@@ -46,7 +46,6 @@ function ProductsContent() {
       maxPrice: searchParams.get("maxPrice") ?? "",
       inStock: searchParams.get("inStock") ?? "",
       sort: (searchParams.get("sort") as ProductSort) || "newest",
-      page: Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1),
       limit: parseInt(searchParams.get("limit") ?? "12", 10) || 12,
     }),
     [searchParams]
@@ -58,10 +57,9 @@ function ProductsContent() {
       if (v) next.set(k, v);
       else next.delete(k);
     }
-    if (!("page" in updates)) next.delete("page");
-    router.push(`/products${next.toString() ? `?${next.toString()}` : ""}`, {
-      scroll: false,
-    });
+    // Old page-number links: the list now grows with "Load more"
+    next.delete("page");
+    router.push(`/products${next.toString() ? `?${next.toString()}` : ""}`);
   };
 
   const queryString = buildQuery({
@@ -72,14 +70,21 @@ function ProductsContent() {
     maxPrice: params.maxPrice || undefined,
     inStock: params.inStock === "1" ? "true" : undefined,
     sort: params.sort,
-    page: params.page,
     limit: params.limit,
   });
 
-  const productsQuery = useQuery({
-    queryKey: ["products", queryString],
-    queryFn: () => apiClient.get<ProductsResponse>(`/products${queryString}`),
+  // Cursor pagination: each "Load more" asks for the products after the last one shown
+  const productsQuery = useInfiniteQuery({
+    queryKey: ["products", "infinite", queryString],
+    queryFn: ({ pageParam }) =>
+      apiClient.get<ProductsResponse>(
+        `/products${queryString}${pageParam ? `&cursor=${encodeURIComponent(pageParam)}` : ""}`,
+      ),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.meta.nextCursor,
   });
+  const products = productsQuery.data?.pages.flatMap((pg) => pg.items) ?? [];
+  const totalProducts = productsQuery.data?.pages[0].meta.total ?? 0;
 
   const categoriesQuery = useCategoryTree();
 
@@ -327,7 +332,7 @@ function ProductsContent() {
           <p className="text-sm text-zinc-500">
             {productsQuery.data ? (
               <>
-                <span className="font-semibold text-zinc-900">{productsQuery.data.meta.total}</span> products found
+                <span className="font-semibold text-zinc-900">{totalProducts}</span> products found
               </>
             ) : (
               "Loading…"
@@ -390,7 +395,7 @@ function ProductsContent() {
             message={(productsQuery.error as Error).message}
             onRetry={() => productsQuery.refetch()}
           />
-        ) : productsQuery.data.items.length === 0 ? (
+        ) : products.length === 0 ? (
           <EmptyState
             title="No products found"
             hint="Try adjusting your search or filters."
@@ -406,16 +411,35 @@ function ProductsContent() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-              {productsQuery.data.items.map((p) => (
+              {products.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
-            <div className="mt-8">
-              <Pagination
-                page={productsQuery.data.meta.page}
-                totalPages={productsQuery.data.meta.totalPages}
-                onPage={(p) => setParam({ page: String(p) })}
-              />
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <p className="text-sm text-zinc-500">
+                Showing <span className="font-semibold text-zinc-900">{products.length}</span> of{" "}
+                <span className="font-semibold text-zinc-900">{totalProducts}</span> products
+              </p>
+              {productsQuery.hasNextPage && (
+                <button
+                  type="button"
+                  onClick={() => productsQuery.fetchNextPage()}
+                  disabled={productsQuery.isFetchingNextPage}
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-8 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm transition hover:border-primary-600 hover:text-primary-700 disabled:cursor-wait disabled:opacity-60"
+                >
+                  {productsQuery.isFetchingNextPage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      Loading…
+                    </>
+                  ) : (
+                    "Load more"
+                  )}
+                </button>
+              )}
+              {productsQuery.isFetchNextPageError && (
+                <p className="text-sm text-rose-600">Couldn&apos;t load more products. Please try again.</p>
+              )}
             </div>
           </>
         )}

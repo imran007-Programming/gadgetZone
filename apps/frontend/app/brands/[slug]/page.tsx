@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { apiClient, ApiError } from "@/lib/api";
 import type { BrandDetail, ProductsResponse } from "@/lib/types";
@@ -24,9 +25,12 @@ type Props = {
   searchParams: Promise<{ page?: string; sort?: string }>;
 };
 
+// cache(): generateMetadata and the page share one /brands/:slug request per render
+const fetchBrand = cache((slug: string) => apiClient.get<BrandDetail>(`/brands/${encodeURIComponent(slug)}`));
+
 async function getBrand(slug: string): Promise<BrandDetail> {
   try {
-    return await apiClient.get<BrandDetail>(`/brands/${encodeURIComponent(slug)}`);
+    return await fetchBrand(slug);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
@@ -36,7 +40,7 @@ async function getBrand(slug: string): Promise<BrandDetail> {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const brand = await apiClient.get<BrandDetail>(`/brands/${encodeURIComponent(slug)}`);
+    const brand = await fetchBrand(slug);
     return {
       title: `${brand.name} — GadgetLax`,
       description: brand.description ?? `Shop ${brand.name} gadgets at GadgetLax.`,
@@ -53,12 +57,15 @@ export default async function BrandPage({ params, searchParams }: Props) {
   const sort = SORTS.some((s) => s.value === query.sort) ? query.sort! : "newest";
   const page = Math.max(1, parseInt(query.page ?? "1", 10) || 1);
 
-  const brand = await getBrand(slug);
-  const products = await apiClient
-    .get<ProductsResponse>(
-      `/products?brand=${encodeURIComponent(slug)}&sort=${sort}&page=${page}&limit=${PAGE_SIZE}`,
-    )
-    .catch(() => null);
+  // Both only need the slug, so fetch them in parallel
+  const [brand, products] = await Promise.all([
+    getBrand(slug),
+    apiClient
+      .get<ProductsResponse>(
+        `/products?brand=${encodeURIComponent(slug)}&sort=${sort}&page=${page}&limit=${PAGE_SIZE}`,
+      )
+      .catch(() => null),
+  ]);
 
   const href = (p: number, s: string = sort) => `/brands/${slug}?sort=${s}${p > 1 ? `&page=${p}` : ""}`;
   const totalPages = products?.meta.totalPages ?? 1;
@@ -81,7 +88,7 @@ export default async function BrandPage({ params, searchParams }: Props) {
       <section className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-200/80">
         <div className="relative aspect-[3/1] bg-gradient-to-br from-zinc-800 to-zinc-950 sm:aspect-[5/1]">
           {brand.bannerUrl && (
-            <Image src={brand.bannerUrl} alt={brand.name} fill priority sizes="(max-width: 1450px) 100vw, 1450px" className="object-cover" />
+            <Image src={brand.bannerUrl} alt={brand.name} fill preload fetchPriority="high" sizes="(max-width: 1450px) 100vw, 1450px" className="object-cover" />
           )}
         </div>
         <div className="flex flex-col gap-4 px-6 pb-6 sm:flex-row sm:items-end">

@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, Plus, Upload } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
+import { CACHE_TAGS, STOREFRONT_REFRESH_FAILED, revalidateCache } from "@/lib/cache-tags";
 import type { AdminBrand, Category, Product } from "@/lib/types";
 import {
   Card,
@@ -229,6 +230,7 @@ function BulkImportModal({ categories, onClose }: { categories: Category[]; onCl
         toast.success(`${r.created} product${r.created === 1 ? "" : "s"} created`);
         queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
         queryClient.invalidateQueries({ queryKey: ["products"] });
+        void revalidateCache(CACHE_TAGS.products).then((ok) => ok || toast.error(STOREFRONT_REFRESH_FAILED));
       }
     },
     onError: (e: Error) => toast.error(e.message),

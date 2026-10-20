@@ -127,7 +127,8 @@ export default function ProductDetail({ slug, initialProduct }: { slug: string; 
   return (
     <div className="space-y-6">
       <BackLink href="/products" label="Back to products" />
-      <div className="grid gap-8 md:grid-cols-2">
+      {/* Gallery takes 40% on wider screens, so the details and buttons get more room */}
+      <div className="grid gap-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div className="flex flex-col gap-3">
           <div className="relative aspect-square overflow-hidden rounded-2xl bg-white ring-1 ring-zinc-200">
             {gallery[activeImage] ? (
@@ -136,9 +137,10 @@ export default function ProductDetail({ slug, initialProduct }: { slug: string; 
                 src={gallery[activeImage]}
                 alt={p.name}
                 fill
-                sizes="(max-width: 768px) 100vw, 50vw"
+                sizes="(max-width: 768px) 100vw, (max-width: 1450px) 40vw, 580px"
                 className="object-contain p-4 sm:p-6"
-                priority
+                preload
+                fetchPriority="high"
               />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-zinc-400">No image yet</div>

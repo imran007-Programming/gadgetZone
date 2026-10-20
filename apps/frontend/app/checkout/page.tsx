@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,7 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { useSiteSettings } from "@/lib/categories";
 import { useCartStore, selectSubtotal } from "@/lib/store/cart";
 import { useToast } from "@/lib/toast";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, newIdempotencyKey } from "@/lib/utils";
 import type { CouponPreview, Order } from "@/lib/types";
 import type { BdDistrict } from "@/lib/bd-locations";
 import { BackLink, EmptyState, Spinner } from "@/components/ui";
@@ -139,6 +139,17 @@ function CheckoutContent() {
   const setQty = useCartStore((s) => s.setQty);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clear);
+
+  // One key per checkout attempt: a retry (say, after a timeout) resends it, so the server
+  // returns the order it already placed instead of a duplicate. A changed cart is a new
+  // attempt and gets a new key (as does the next order, once this cart is cleared).
+  const idempotencyKey = useRef("");
+  const cartSignature = items.map((i) => `${i.productId}:${i.quantity}`).join(",");
+  useEffect(() => {
+    idempotencyKey.current = newIdempotencyKey();
+  }, [cartSignature]);
+  // Stops a second submit that fires before the disabled button has re-rendered
+  const submittingRef = useRef(false);
 
   // Coupon: previewed against the subtotal; the server re-checks it when the order is placed
   const [couponOpen, setCouponOpen] = useState(false);
@@ -281,6 +292,8 @@ function CheckoutContent() {
       setError("transactionId", { message: "Enter the bKash / Nagad Transaction ID (6–20 letters or digits)" });
       return;
     }
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
     const phone = normalizePhone(values.phone);
@@ -308,11 +321,13 @@ function CheckoutContent() {
         await registerAccount(values.name, values.email!, values.password!);
         asUser = true;
       }
+      const once = { headers: { "Idempotency-Key": idempotencyKey.current } };
       const order = asUser
-        ? await apiClient.post<Order>("/orders", {
-            shippingAddress: { ...delivery, country: "Bangladesh" },
-            ...extras,
-          })
+        ? await apiClient.post<Order>(
+            "/orders",
+            { shippingAddress: { ...delivery, country: "Bangladesh" }, ...extras },
+            once,
+          )
         : await apiClient.post<Order>("/orders/guest", {
             name: delivery.name,
             phone: delivery.phone,
@@ -322,7 +337,7 @@ function CheckoutContent() {
             upazila: delivery.upazila,
             items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
             ...extras,
-          });
+          }, once);
       clearCart();
       setPlacedOrder(order);
       toast.success("Order placed successfully");
@@ -330,6 +345,7 @@ function CheckoutContent() {
     } catch (e) {
       setSubmitError(e instanceof ApiError ? e.message : "Failed to place order");
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -426,7 +442,8 @@ function CheckoutContent() {
       </div>
 
       <form
-        onSubmit={handleSubmit(onSubmit)}
+        // handleSubmit runs in the event, not during render: onSubmit reads refs
+        onSubmit={(e) => void handleSubmit(onSubmit)(e)}
         noValidate
         className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)] lg:gap-7"
       >

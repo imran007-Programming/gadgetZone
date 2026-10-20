@@ -9,12 +9,17 @@ export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** The single settings row, created with the schema defaults on first read. */
-  get() {
-    return this.prisma.siteSetting.upsert({
-      where: { id: SETTINGS_ID },
-      create: { id: SETTINGS_ID },
-      update: {},
-    });
+  async get() {
+    // Plain read first: an upsert runs as a transaction (several round trips) on every call
+    const existing = await this.prisma.siteSetting.findUnique({ where: { id: SETTINGS_ID } });
+    return (
+      existing ??
+      this.prisma.siteSetting.upsert({
+        where: { id: SETTINGS_ID },
+        create: { id: SETTINGS_ID },
+        update: {},
+      })
+    );
   }
 
   update(dto: UpdateSettingsDto) {

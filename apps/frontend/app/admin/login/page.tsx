@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 py-10 font-[family-name:var(--font-admin)]">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Image src="/logo.png" alt="GadgetLax" width={56} height={56} priority className="h-14 w-14 rounded-2xl" />
+          <Image src="/logo.png" alt="GadgetLax" width={56} height={56} loading="eager" className="h-14 w-14 rounded-2xl" />
           <h1 className="mt-4 text-xl font-semibold tracking-tight text-white">Admin portal</h1>
           <p className="mt-1 text-sm text-zinc-400">Sign in with your admin account</p>
         </div>

@@ -257,7 +257,7 @@ export default function MobileSidebar() {
                 </>
               ) : (
                 <li>
-                  <Link href="/login" onClick={close} className={`${rowCls} gap-2.5 font-normal text-zinc-900`}>
+                  <Link href="/login" prefetch={false} onClick={close} className={`${rowCls} gap-2.5 font-normal text-zinc-900`}>
                     <User className="h-4 w-4 text-zinc-600" strokeWidth={1.6} />
                     Login / Register
                   </Link>

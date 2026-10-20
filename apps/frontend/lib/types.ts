@@ -85,7 +85,8 @@ export interface Product {
 
 export interface ProductsResponse {
   items: Product[];
-  meta: { page: number; limit: number; total: number; totalPages: number };
+  /** nextCursor: pass as ?cursor= for the next batch; null on the last one. */
+  meta: { page: number; limit: number; total: number; totalPages: number; nextCursor: string | null };
 }
 
 export interface CartItem {
@@ -175,6 +176,8 @@ export interface Order {
   billingAddress?: { name: string; phone: string; street: string; district: string } | null;
   /** Latest return request for this order, if any (customer order endpoints). */
   returnRequest?: CustomerReturn | null;
+  /** Admin order list: all orders placed with this order's phone number (this one included). */
+  phoneHistory?: { total: number; delivered: number; cancelled: number } | null;
 }
 
 export interface AdminStats {

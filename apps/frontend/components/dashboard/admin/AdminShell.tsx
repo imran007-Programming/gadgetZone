@@ -254,7 +254,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         {/* ================= SIDEBAR ================= */}
         <aside className={`sidebar${drawerOpen ? " open" : ""}${collapsed ? " collapsed" : ""}`}>
           <Link href="/admin" className="brand">
-            <Image src="/logo.png" alt="GadgetLax" width={40} height={40} className="brand-logo" priority />
+            <Image src="/logo.png" alt="GadgetLax" width={40} height={40} className="brand-logo" loading="eager" />
             <span className="brand-name">
               GADGET
               <br />

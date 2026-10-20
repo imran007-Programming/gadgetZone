@@ -145,11 +145,17 @@ export function refreshAccessToken(): Promise<string | null> {
 async function doRefresh(): Promise<string | null> {
   try {
     const stored = getStoredRefreshToken();
+    // Login and refresh always save this copy, so without it there is no session to
+    // restore: skip the call instead of logging a 401 on every guest page load.
+    if (!stored) {
+      setAccessToken(null);
+      return null;
+    }
     const res = await fetch(`${API_URL}${authPath("refresh")}`, {
       method: "POST",
       credentials: "include",
-      headers: stored ? { "Content-Type": "application/json" } : undefined,
-      body: stored ? JSON.stringify({ refreshToken: stored }) : undefined,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: stored }),
     });
     if (!res.ok) {
       setAccessToken(null);

@@ -39,7 +39,7 @@ export default function MobileNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.15)] backdrop-blur-xl md:hidden"
     >
       <div className="flex items-stretch px-2">
-        <Link href={accountHref} className={itemCls(isActive("/dashboard") || isActive("/admin") || isActive("/login"))}>
+        <Link href={accountHref} prefetch={accountHref !== "/login"} className={itemCls(isActive("/dashboard") || isActive("/admin") || isActive("/login"))}>
           <User className="h-6 w-6" strokeWidth={1.8} />
           My account
         </Link>

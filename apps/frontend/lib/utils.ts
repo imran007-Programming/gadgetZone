@@ -49,3 +49,13 @@ export function buildQuery(params: Record<string, string | number | boolean | un
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
+
+/**
+ * Random key for one checkout attempt, sent as the Idempotency-Key header.
+ * randomUUID only exists on HTTPS or localhost, so a phone on the LAN (plain
+ * http://192.168…) falls back to getRandomValues.
+ */
+export function newIdempotencyKey(): string {
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+}

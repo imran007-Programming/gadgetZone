@@ -30,7 +30,8 @@ export function BannerSlide({
       src={banner.imageUrl}
       alt={banner.title}
       fill
-      priority={priority}
+      preload={priority}
+      fetchPriority={priority ? "high" : undefined}
       unoptimized={preview && banner.imageUrl.startsWith("blob:")}
       className="object-cover"
       sizes="(max-width: 640px) 100vw, 1200px"

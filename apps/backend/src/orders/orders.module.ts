@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CouponsModule } from '../coupons/coupons.module.js';
 import { OrdersController } from './orders.controller.js';
 import { OrdersService } from './orders.service.js';
+import { OrderExpiryTask } from './order-expiry.task.js';
 import { MockPaymentService } from './payment/mock-payment.service.js';
 import { PaymentService } from './payment/payment.service.js';
 
@@ -10,6 +11,7 @@ import { PaymentService } from './payment/payment.service.js';
   controllers: [OrdersController],
   providers: [
     OrdersService,
+    OrderExpiryTask,
     // Stripe plug-in point: replace MockPaymentService with a Stripe adapter
     // implementing the same PaymentService contract.
     { provide: PaymentService, useClass: MockPaymentService },

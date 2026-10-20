@@ -15,6 +15,11 @@ export const envValidationSchema = Joi.object({
   CLOUDINARY_CLOUD_NAME: Joi.string().allow('').optional(),
   CLOUDINARY_API_KEY: Joi.string().allow('').optional(),
   CLOUDINARY_API_SECRET: Joi.string().allow('').optional(),
+  // Unconfirmed (PENDING) orders older than this are cancelled and their stock restored;
+  // orders with a bKash/Nagad Transaction ID are skipped. 0 turns it off.
+  PENDING_ORDER_TTL_HOURS: Joi.number().min(0).default(48),
+  // Number of proxies in front of the API (e.g. 1 on Railway/Render); unset when reached directly
+  TRUST_PROXY: Joi.string().allow('').optional(),
   NODE_ENV: Joi.string()
     .valid('development', 'test', 'production')
     .default('development'),

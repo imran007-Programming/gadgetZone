@@ -59,66 +59,6 @@ export function ErrorState({
   );
 }
 
-export function Pagination({
-  page,
-  totalPages,
-  onPage,
-}: {
-  page: number;
-  totalPages: number;
-  onPage: (p: number) => void;
-}) {
-  if (totalPages <= 1) return null;
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
-    (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2
-  );
-  return (
-    <nav className="flex items-center justify-center gap-1.5" aria-label="Pagination">
-      <PageBtn disabled={page <= 1} onClick={() => onPage(page - 1)} label="‹ Prev" />
-      {pages.map((p, i) => (
-        <span key={p} className="flex items-center gap-1.5">
-          {i > 0 && pages[i - 1] !== p - 1 && (
-            <span className="px-1 text-zinc-400">…</span>
-          )}
-          <PageBtn active={p === page} onClick={() => onPage(p)} label={String(p)} />
-        </span>
-      ))}
-      <PageBtn
-        disabled={page >= totalPages}
-        onClick={() => onPage(page + 1)}
-        label="Next ›"
-      />
-    </nav>
-  );
-}
-
-function PageBtn({
-  label,
-  onClick,
-  active,
-  disabled,
-}: {
-  label: string;
-  onClick: () => void;
-  active?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      aria-current={active ? "page" : undefined}
-      className={`min-w-9 rounded-full px-2.5 py-1.5 text-sm font-medium transition ${
-        active
-          ? "bg-primary-600 text-white shadow-sm"
-          : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 disabled:opacity-40"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
 /** Client-side route guard. Redirects to /login when unauthenticated. */
 export function RequireAuth({
   children,

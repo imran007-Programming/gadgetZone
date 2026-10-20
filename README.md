@@ -216,7 +216,9 @@ TEST_DATABASE_URL="postgresql://ecommerce:ecommerce@localhost:5433/ecommerce_tes
   `DATABASE_URL` pointing at a managed Postgres, and real `JWT_*_SECRET` values.
   Build with `npm run build`, run with `npm run start:prod` (or `node dist/main`).
   Run `npx prisma migrate deploy` (not `migrate dev`) on the server, then
-  `npx prisma db seed` once.
+  `npx prisma db seed` once. Set `TRUST_PROXY=1` on hosts that put a proxy in front
+  (Railway, Render, nginx), or the login and checkout rate limits count every visitor
+  as one IP.
 - **Database → managed Postgres** (Neon / Supabase / RDS). Update `DATABASE_URL`
   everywhere.
 - Change the seeded admin password immediately; rotate `JWT_*_SECRET` to fresh

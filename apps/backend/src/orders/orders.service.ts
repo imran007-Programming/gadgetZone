@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto';
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -32,6 +34,48 @@ const ORDER_INCLUDE = {
 type OrderWithItems = Prisma.OrderGetPayload<{
   include: typeof ORDER_INCLUDE;
 }>;
+
+/** Written onto a new order; both null when the checkout sent no Idempotency-Key. */
+interface IdempotencyFields {
+  idempotencyKey: string | null;
+  idempotencyHash: string | null;
+}
+
+/** A UUID or similar random token from the client. */
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{16,100}$/;
+
+function parseIdempotencyKey(raw: string | undefined): string | null {
+  if (raw === undefined || raw === '') return null;
+  if (!IDEMPOTENCY_KEY_PATTERN.test(raw)) {
+    throw new BadRequestException('Invalid Idempotency-Key header');
+  }
+  return raw;
+}
+
+/** JSON with sorted keys, so the same body always hashes the same way. */
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'null';
+}
+
+function requestHash(body: object): string {
+  return createHash('sha256').update(stableStringify(body)).digest('hex');
+}
+
+/** The unique index on Order.idempotencyKey rejected a second order with the same key. */
+function isIdempotencyKeyClash(err: unknown): boolean {
+  return (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === 'P2002' &&
+    String(err.meta?.target ?? '').includes('idempotencyKey')
+  );
+}
 
 /** Allowed status transitions; enforced in cancel()/pay(). */
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -81,7 +125,13 @@ export class OrdersService {
     private readonly coupons: CouponsService,
   ) {}
 
-  async create(userId: string, dto: CreateOrderDto) {
+  async create(userId: string, dto: CreateOrderDto, idempotencyKey?: string) {
+    return this.onceForKey(idempotencyKey, userId, dto, (idempotency) =>
+      this.placeOrder(userId, dto, idempotency),
+    );
+  }
+
+  private async placeOrder(userId: string, dto: CreateOrderDto, idempotency: IdempotencyFields) {
     const shippingAddress = buildShippingAddress(dto.shippingAddress);
     const order = await this.prisma.$transaction(async (tx) => {
       const cartItems = await tx.cartItem.findMany({
@@ -118,12 +168,15 @@ export class OrdersService {
         total = total.plus(product.price.mul(quantity));
       }
 
+      await this.reserveStock(tx, cartItems);
+
       const { coupon, discount } = await this.applyCoupon(tx, dto.couponCode, total);
       const delivery = await this.deliveryFor(tx, shippingAddress.district, dto.transactionId);
 
       const created = await tx.order.create({
         data: {
           userId,
+          ...idempotency,
           status: OrderStatus.PENDING,
           totalAmount: total.minus(discount).plus(delivery.fee),
           discountAmount: discount,
@@ -142,26 +195,106 @@ export class OrdersService {
         include: ORDER_INCLUDE,
       });
 
-      for (const item of cartItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
-        });
-      }
-
       if (coupon) await this.coupons.consume(tx, coupon.id);
       await tx.cartItem.deleteMany({ where: { userId } });
       return created;
     });
 
-    return this.toOrderDto(order);
+    return order;
+  }
+
+  /**
+   * Places an order at most once per Idempotency-Key. The checkout sends one key per
+   * attempt and resends it on a retry (e.g. after a timeout), so the retry gets the
+   * order the first attempt already made instead of a duplicate. The key is looked up
+   * first, before the cart check, since a successful order empties the cart.
+   */
+  private async onceForKey(
+    rawKey: string | undefined,
+    userId: string | null,
+    body: object,
+    place: (idempotency: IdempotencyFields) => Promise<OrderWithItems>,
+  ) {
+    const key = parseIdempotencyKey(rawKey);
+    if (!key) return this.toOrderDto(await place({ idempotencyKey: null, idempotencyHash: null }));
+
+    const hash = requestHash(body);
+    const earlier = await this.findByIdempotencyKey(key, hash, userId);
+    if (earlier) return this.toOrderDto(earlier);
+    try {
+      return this.toOrderDto(await place({ idempotencyKey: key, idempotencyHash: hash }));
+    } catch (err) {
+      // Two requests with the same key at once: the unique index let only one order in,
+      // and this attempt's transaction (stock included) rolled back. Return the winner.
+      if (!isIdempotencyKeyClash(err)) throw err;
+      const winner = await this.findByIdempotencyKey(key, hash, userId);
+      if (!winner) throw err;
+      return this.toOrderDto(winner);
+    }
+  }
+
+  /** The order an earlier attempt placed with this key, if it is the same checkout. */
+  private async findByIdempotencyKey(key: string, hash: string, userId: string | null) {
+    const order = await this.prisma.order.findUnique({
+      where: { idempotencyKey: key },
+      include: ORDER_INCLUDE,
+    });
+    if (!order) return null;
+    // Another account, or the same key with a different cart or address: never hand back
+    // that order, and never place a second one under the same key either.
+    if (order.userId !== userId || order.idempotencyHash !== hash) {
+      throw new ConflictException(
+        'An order was already placed from this checkout. Check your orders, or refresh the page to start a new one.',
+      );
+    }
+    return order;
+  }
+
+  /**
+   * Takes the ordered quantities out of stock. The check and the decrement are one
+   * atomic UPDATE ... WHERE stock >= quantity: when two checkouts race for the last
+   * unit, the second waits for the first, then finds the condition false, and its
+   * whole transaction rolls back. (Checking first and decrementing later let both
+   * pass and pushed stock below zero.) Rows are updated in id order so two carts
+   * with the same products never lock them in opposite order and deadlock.
+   */
+  private async reserveStock(
+    tx: Prisma.TransactionClient,
+    lines: { productId: string; quantity: number }[],
+  ) {
+    const ordered = [...lines].sort((a, b) => a.productId.localeCompare(b.productId));
+    for (const { productId, quantity } of ordered) {
+      const { count } = await tx.product.updateMany({
+        where: { id: productId, isActive: true, stock: { gte: quantity } },
+        data: { stock: { decrement: quantity } },
+      });
+      if (count === 0) {
+        // Lost the race: read what is left to name it in the error
+        const product = await tx.product.findUnique({
+          where: { id: productId },
+          select: { name: true, stock: true, isActive: true },
+        });
+        if (!product || !product.isActive) {
+          throw new BadRequestException(`Product "${product?.name ?? productId}" is no longer available`);
+        }
+        throw new BadRequestException(
+          `Insufficient stock for "${product.name}" (available: ${product.stock}, requested: ${quantity})`,
+        );
+      }
+    }
   }
 
   /**
    * Guest checkout: no login required. Items come from the client cart,
    * validated against live product data inside a transaction.
    */
-  async createGuest(dto: CreateGuestOrderDto) {
+  async createGuest(dto: CreateGuestOrderDto, idempotencyKey?: string) {
+    return this.onceForKey(idempotencyKey, null, dto, (idempotency) =>
+      this.placeGuestOrder(dto, idempotency),
+    );
+  }
+
+  private async placeGuestOrder(dto: CreateGuestOrderDto, idempotency: IdempotencyFields) {
     const shippingAddress = buildShippingAddress({
       name: dto.name,
       phone: dto.phone,
@@ -202,12 +335,15 @@ export class OrdersService {
         });
       }
 
+      await this.reserveStock(tx, lines);
+
       const { coupon, discount } = await this.applyCoupon(tx, dto.couponCode, total);
       const delivery = await this.deliveryFor(tx, shippingAddress.district, dto.transactionId);
 
       const created = await tx.order.create({
         data: {
           userId: null,
+          ...idempotency,
           status: OrderStatus.PENDING,
           totalAmount: total.minus(discount).plus(delivery.fee),
           discountAmount: discount,
@@ -230,18 +366,11 @@ export class OrdersService {
         include: ORDER_INCLUDE,
       });
 
-      for (const line of lines) {
-        await tx.product.update({
-          where: { id: line.productId },
-          data: { stock: { decrement: line.quantity } },
-        });
-      }
-
       if (coupon) await this.coupons.consume(tx, coupon.id);
       return created;
     });
 
-    return this.toOrderDto(order);
+    return order;
   }
 
   async findAll(userId: string) {
@@ -279,6 +408,52 @@ export class OrdersService {
     });
 
     return this.toOrderDto(cancelled);
+  }
+
+  /**
+   * Cancels PENDING orders the shop has not confirmed within maxAgeHours and puts their
+   * stock and coupon use back, so abandoned or fake cash-on-delivery orders don't hold
+   * stock forever. Orders with a bKash/Nagad Transaction ID are left to the admin, since
+   * the customer may already have paid the advance. Returns how many were cancelled.
+   */
+  async cancelStalePendingOrders(maxAgeHours: number, now = new Date()): Promise<number> {
+    const cutoff = new Date(now.getTime() - maxAgeHours * 60 * 60 * 1000);
+    const stale = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.PENDING,
+        createdAt: { lt: cutoff },
+        OR: [{ transactionId: null }, { transactionId: '' }],
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+      take: 100, // the next run picks up the rest
+    });
+
+    let cancelled = 0;
+    for (const { id } of stale) {
+      const done = await this.prisma.$transaction(async (tx) => {
+        // Only while still PENDING: the admin may have confirmed it in the meantime
+        const { count } = await tx.order.updateMany({
+          where: { id, status: OrderStatus.PENDING },
+          data: { status: OrderStatus.CANCELLED },
+        });
+        if (count === 0) return false;
+        const order = await tx.order.findUniqueOrThrow({
+          where: { id },
+          select: { couponId: true, items: { select: { productId: true, quantity: true } } },
+        });
+        for (const item of order.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
+        await this.coupons.release(tx, order.couponId);
+        return true;
+      });
+      if (done) cancelled++;
+    }
+    return cancelled;
   }
 
   async pay(userId: string, id: string) {

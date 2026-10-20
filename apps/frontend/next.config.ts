@@ -9,6 +9,17 @@ const nextConfig: NextConfig = {
     // Product photos come from many external seller/CDN domains (see seed data)
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
+  experimental: {
+    // Tailwind CSS is small: put it in a <style> tag instead of a render-blocking <link>
+    inlineCss: true,
+  },
+  turbopack: {
+    resolveAlias: {
+      // Drop Next's legacy polyfills (Array.prototype.at, Object.hasOwn, ...)
+      // app-globals.js requires it by this relative path
+      "../build/polyfills/polyfill-module": "./lib/no-legacy-polyfills.js",
+    },
+  },
 };
 
 export default nextConfig;

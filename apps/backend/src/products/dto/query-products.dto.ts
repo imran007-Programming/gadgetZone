@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -24,6 +25,15 @@ export class QueryProductsDto {
   @IsInt()
   @Min(1)
   page = 1;
+
+  @ApiPropertyOptional({
+    description:
+      'Opaque cursor from meta.nextCursor: returns the products after it (keyset pagination; page is ignored)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  cursor?: string;
 
   @ApiPropertyOptional({ default: 12, minimum: 1, maximum: 100 })
   @IsOptional()

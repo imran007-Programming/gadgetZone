@@ -1,13 +1,14 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import ConditionalHeader from "./ConditionalHeader";
 import ConditionalFooter from "./ConditionalFooter";
 import CartDrawer from "./CartDrawer";
 import MobileNav from "./MobileNav";
 import MobileSidebar from "./MobileSidebar";
 import BackToTop from "./BackToTop";
+import ScrollToTop from "./ScrollToTop";
 
 function isDashboardRoute(pathname: string) {
   return (
@@ -27,12 +28,25 @@ export default function SiteChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isDashboard = isDashboardRoute(pathname);
 
+  // useSearchParams needs a Suspense boundary, or static pages fail to prerender
+  const scrollToTop = (
+    <Suspense fallback={null}>
+      <ScrollToTop />
+    </Suspense>
+  );
+
   if (isDashboard) {
-    return <>{children}</>;
+    return (
+      <>
+        {scrollToTop}
+        {children}
+      </>
+    );
   }
 
   return (
     <>
+      {scrollToTop}
       <ConditionalHeader />
       <main className="mx-auto w-full max-w-[1450px] flex-1 px-4 py-6 pb-24 sm:px-6 md:pb-6">
         {children}

@@ -3,6 +3,10 @@ import { Noto_Sans_Bengali, Poppins } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import SiteChrome from "@/components/SiteChrome";
+import { apiClient } from "@/lib/api";
+import type { ChromeData } from "@/lib/categories";
+import { CACHE_TAGS } from "@/lib/cache-tags";
+import type { Category, SiteSettings } from "@/lib/types";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -27,17 +31,36 @@ export const metadata: Metadata = {
     "GadgetLax — premium gadgets, audio, wearables and smart home tech. Full-stack e-commerce built with Next.js, NestJS, Prisma and PostgreSQL.",
 };
 
-export default function RootLayout({
+/**
+ * Top bar settings + category nav, rendered on the server; null falls back to the client fetch.
+ * Cached by tag: the admin panel drops a tag as soon as it saves (app/api/revalidate), and the
+ * 1-hour revalidate only catches changes made outside the admin panel.
+ */
+async function getChromeData(): Promise<ChromeData> {
+  const [settings, categories] = await Promise.all([
+    apiClient
+      .get<SiteSettings>("/settings", { next: { revalidate: 3600, tags: [CACHE_TAGS.settings] } })
+      .catch(() => null),
+    apiClient
+      .get<Category[]>("/categories", { next: { revalidate: 3600, tags: [CACHE_TAGS.categories] } })
+      .catch(() => null),
+  ]);
+  return { settings, categories, fetchedAt: Date.now() };
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const chrome = await getChromeData();
+
   return (
     <html lang="en" className={`${poppins.variable} ${taka.variable}`}>
       <body
         className={`flex min-h-screen flex-col bg-zinc-50 font-sans text-zinc-900`}
       >
-        <Providers>
+        <Providers chrome={chrome}>
           <SiteChrome>{children}</SiteChrome>
         </Providers>
       </body>

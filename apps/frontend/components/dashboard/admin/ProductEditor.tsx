@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Trash2, Upload, X } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
+import { CACHE_TAGS, STOREFRONT_REFRESH_FAILED, revalidateCache } from "@/lib/cache-tags";
 import { useObjectUrls } from "@/lib/use-object-urls";
 import { toNumber } from "@/lib/utils";
 import { buildCategoryTree } from "@/lib/categories";
@@ -85,6 +86,7 @@ export default function ProductEditor({ product, categories }: { product?: Produ
     queryClient.invalidateQueries({ queryKey: ["admin", "stats"] });
     queryClient.invalidateQueries({ queryKey: ["products"] });
     queryClient.invalidateQueries({ queryKey: ["product"] });
+    void revalidateCache(CACHE_TAGS.products).then((ok) => ok || toast.error(STOREFRONT_REFRESH_FAILED));
   };
 
   const deleteImageMutation = useMutation({

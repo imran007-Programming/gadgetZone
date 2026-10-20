@@ -137,7 +137,8 @@ export default function Header() {
               alt="GadgetLax"
               width={40}
               height={40}
-              priority
+              // Above the fold, so not lazy; no preload so it doesn't compete with the banner (LCP)
+              loading="eager"
               className="h-8 w-8 rounded-lg shadow-sm md:h-10 md:w-10 md:rounded-xl"
             />
             <span className="font-display text-lg font-bold tracking-tight text-zinc-900 md:text-xl">
@@ -232,6 +233,8 @@ export default function Header() {
             ) : (
               <Link
                 href="/login"
+                // The login page pulls in zod for form validation; load it on click, not on every page view
+                prefetch={false}
                 className="hidden rounded-full bg-zinc-100 p-2.5 text-zinc-700 transition hover:bg-zinc-200 sm:block"
                 aria-label="Login"
               >

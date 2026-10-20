@@ -60,7 +60,6 @@ model Category {
   children    Category[] @relation("CategoryTree")
   products    Product[]
 
-  @@index([slug])
   @@index([parentId])
 }
 
@@ -111,10 +110,15 @@ model Product {
   reviews       Review[]
   banners       Banner[]
 
-  @@index([slug])
   @@index([categoryId])
   @@index([brandId])
-  @@index([isActive])
+  // Storefront listing, one per sort option; id breaks ties for the "Load more" cursor
+  @@index([isActive, createdAt, id])
+  @@index([isActive, price, id])
+  @@index([isActive, name, id])
+  // Trigram indexes let search's "contains" (ILIKE '%word%') use an index (pg_trgm)
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Product_name_trgm_idx")
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "Product_description_trgm_idx")
 }
 
 model ProductImage {
@@ -138,8 +142,9 @@ model CartItem {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity  Int     @default(1)
 
+  // Lookups by userId use this unique index
   @@unique([userId, productId])
-  @@index([userId])
+  @@index([productId])
 }
 
 model Order {
@@ -168,12 +173,22 @@ model Order {
   notes           String?
   /// Billing contact when the order ships to a different address (null = same as shipping)
   billingAddress  Json?
+  /// Idempotency-Key the checkout sent: a retry with the same key gets this order back
+  /// instead of creating a duplicate (null for orders placed without one)
+  idempotencyKey  String?         @unique
+  /// SHA-256 of that request's body, so a reused key with different contents is refused
+  idempotencyHash String?
   returnRequests  ReturnRequest[]
   createdAt       DateTime        @default(now())
   items           OrderItem[]
 
-  @@index([userId])
-  @@index([status])
+  // A customer's orders, newest first
+  @@index([userId, createdAt])
+  // Admin list by status, revenue reports, auto-cancel of old PENDING orders
+  @@index([status, createdAt])
+  @@index([createdAt])
+  // Coupon usage counts
+  @@index([couponId])
 }
 
 model OrderItem {
@@ -186,6 +201,8 @@ model OrderItem {
   unitPrice Decimal @db.Decimal(10, 2)
 
   @@index([orderId])
+  // Review eligibility and sales reports look items up by product
+  @@index([productId])
 }
 
 model WishlistItem {
@@ -196,8 +213,9 @@ model WishlistItem {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
+  // Lookups by userId use this unique index
   @@unique([userId, productId])
-  @@index([userId])
+  @@index([productId])
 }
 
 enum DiscountType {
@@ -267,6 +285,8 @@ model ReturnRequest {
 
   @@index([orderId])
   @@index([status])
+  // A customer's returns, newest first
+  @@index([userId, createdAt])
 }
 
 /// Homepage carousel slide (image only), managed from the admin dashboard.

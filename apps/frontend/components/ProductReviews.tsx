@@ -77,7 +77,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                 <ReviewForm productId={productId} />
               ) : (
                 <p className="text-sm text-zinc-500">
-                  <Link href="/login" className="font-semibold text-primary-600 hover:underline">
+                  <Link href="/login" prefetch={false} className="font-semibold text-primary-600 hover:underline">
                     Log in
                   </Link>{" "}
                   to review a product you have received.

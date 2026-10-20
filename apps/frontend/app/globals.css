@@ -5,21 +5,22 @@
     Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-poppins), var(--font-taka), ui-sans-serif, system-ui, sans-serif;
 
-  /* Primary brand palette, matched to the admin dashboard accent (#ff5c38) */
+  /* Primary brand palette. 600 and darker pass WCAG AA (4.5:1) for text on white and
+     for white text on top; the admin dashboard keeps the brighter #ff5c38 accent. */
   --color-primary-50: #fff4f1;
   --color-primary-100: #ffe5de;
   --color-primary-200: #ffcbbd;
   --color-primary-300: #ffa58c;
   --color-primary-400: #ff7a59;
   --color-primary-500: #ff6a45;
-  --color-primary-600: #ff5c38;
-  --color-primary-700: #e8431f;
-  --color-primary-800: #c13416;
-  --color-primary-900: #9a2c15;
+  --color-primary-600: #cf3818;
+  --color-primary-700: #b32f15;
+  --color-primary-800: #942713;
+  --color-primary-900: #7a2213;
   --color-primary-950: #541208;
 
-  --color-accent: #ff5c38;
-  --color-accent-hover: #e8431f;
+  --color-accent: #cf3818;
+  --color-accent-hover: #b32f15;
 
   --animate-fade-up: fade-up 0.6s ease-out both;
   --animate-slide-in-right: slide-in-right 0.25s ease-out both;
@@ -68,7 +69,7 @@ body {
 }
 
 ::selection {
-  background: #ff5c38;
+  background: #cf3818;
   color: #ffffff;
 }
 
@@ -91,10 +92,10 @@ body {
 
 /* Soft orange glow for primary CTAs */
 .btn-glow {
-  box-shadow: 0 8px 24px -8px rgba(255, 92, 56, 0.5);
+  box-shadow: 0 8px 24px -8px rgba(207, 56, 24, 0.5);
 }
 .btn-glow:hover {
-  box-shadow: 0 10px 32px -6px rgba(255, 92, 56, 0.6);
+  box-shadow: 0 10px 32px -6px rgba(207, 56, 24, 0.6);
 }
 
 /* Subtle dot texture for hero */
@@ -122,8 +123,8 @@ body {
   --toastify-icon-color-error: #e11d48;
   --toastify-color-progress-success: #059669;
   --toastify-color-progress-error: #e11d48;
-  --toastify-color-progress-info: #ff5c38;
-  --toastify-icon-color-info: #ff5c38;
+  --toastify-color-progress-info: #cf3818;
+  --toastify-icon-color-info: #cf3818;
 }
 .Toastify__toast {
   font-size: 14px;

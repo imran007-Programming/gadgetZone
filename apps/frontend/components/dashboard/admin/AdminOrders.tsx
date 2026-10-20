@@ -47,6 +47,25 @@ export function customerPhone(o: Order) {
   return o.guestPhone ?? o.shippingAddress?.phone ?? o.user?.phone ?? null;
 }
 
+/**
+ * Orders placed with this phone number: red when they cancel more than they receive
+ * (likely a fake or unreliable buyer), green when they only receive.
+ */
+function PhoneHistoryBadge({ order, long = false }: { order: Order; long?: boolean }) {
+  const h = order.phoneHistory;
+  if (!h) return null;
+  if (h.total <= 1) return <Badge tone="neutral">New number</Badge>;
+  const tone = h.cancelled > h.delivered ? "red" : h.cancelled === 0 && h.delivered > 0 ? "green" : "amber";
+  const text = long
+    ? `This number: ${h.total} orders · ${h.delivered} delivered · ${h.cancelled} cancelled`
+    : `${h.total} orders · ${h.delivered} ✓ · ${h.cancelled} ✕`;
+  return (
+    <span title={`${h.total} orders from this number: ${h.delivered} delivered, ${h.cancelled} cancelled`}>
+      <Badge tone={tone}>{text}</Badge>
+    </span>
+  );
+}
+
 function paymentLabel(method?: string) {
   if (!method) return "—";
   return method.toLowerCase() === "cod" ? "COD" : method.charAt(0).toUpperCase() + method.slice(1);
@@ -154,6 +173,9 @@ export default function AdminOrders() {
                           {customerPhone(o)}
                         </div>
                       )}
+                      <div style={{ marginTop: 4 }}>
+                        <PhoneHistoryBadge order={o} />
+                      </div>
                     </td>
                     <td className="num">{o.items.reduce((n, i) => n + i.quantity, 0)}</td>
                     <td className="num">৳{bdNumber(o.totalAmount)}</td>
@@ -241,6 +263,11 @@ function OrderDetail({ order, onClose }: { order: Order; onClose: () => void }) 
               >
                 {phone}
               </a>
+            )}
+            {order.phoneHistory && (
+              <div style={{ margin: "4px 0 6px" }}>
+                <PhoneHistoryBadge order={order} long />
+              </div>
             )}
             <div className="muted" style={{ fontSize: 12.5 }}>
               {email || (!phone && "No contact details")}

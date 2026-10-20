@@ -44,6 +44,21 @@ const ADMIN_ORDER_INCLUDE = {
 
 type AdminOrder = Prisma.OrderGetPayload<{ include: typeof ADMIN_ORDER_INCLUDE }>;
 
+/** Past orders from one phone number, to spot customers who keep cancelling. */
+export interface PhoneHistory {
+  total: number;
+  delivered: number;
+  cancelled: number;
+}
+
+/** Last 11 digits (01XXXXXXXXX), so +880 / 880 / spaced spellings of a number match. */
+function phoneKey(order: AdminOrder): string | null {
+  const address = order.shippingAddress as { phone?: unknown } | null;
+  const raw = typeof address?.phone === 'string' ? address.phone : order.guestPhone;
+  const digits = raw?.replace(/\D/g, '') ?? '';
+  return digits.length >= 11 ? digits.slice(-11) : null;
+}
+
 /**
  * Allowed status transitions for admin order management. Admins get one extra
  * edge over customers: PAID -> CANCELLED (with stock restore), for orders
@@ -323,7 +338,38 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
       include: ADMIN_ORDER_INCLUDE,
     });
-    return orders.map((o) => this.toAdminOrderDto(o));
+    const history = await this.phoneHistory(orders);
+    return orders.map((o) => {
+      const key = phoneKey(o);
+      return { ...this.toAdminOrderDto(o), phoneHistory: key ? (history.get(key) ?? null) : null };
+    });
+  }
+
+  /**
+   * Order counts per phone number for every number in the list, in one query
+   * (grouped by number and status), so the admin can see who keeps cancelling.
+   */
+  private async phoneHistory(orders: AdminOrder[]): Promise<Map<string, PhoneHistory>> {
+    const keys = [...new Set(orders.map(phoneKey).filter((k): k is string => k !== null))];
+    const history = new Map<string, PhoneHistory>();
+    if (keys.length === 0) return history;
+
+    const rows = await this.prisma.$queryRaw<{ phone: string; status: OrderStatus; n: number }[]>`
+      SELECT right(regexp_replace("shippingAddress"->>'phone', '[^0-9]', '', 'g'), 11) AS phone,
+             "status",
+             count(*)::int AS n
+      FROM "Order"
+      WHERE right(regexp_replace("shippingAddress"->>'phone', '[^0-9]', '', 'g'), 11) IN (${Prisma.join(keys)})
+      GROUP BY 1, 2
+    `;
+    for (const { phone, status, n } of rows) {
+      const h = history.get(phone) ?? { total: 0, delivered: 0, cancelled: 0 };
+      h.total += n;
+      if (status === OrderStatus.DELIVERED) h.delivered += n;
+      if (status === OrderStatus.CANCELLED) h.cancelled += n;
+      history.set(phone, h);
+    }
+    return history;
   }
 
   async updateOrderStatus(id: string, status: OrderStatus) {

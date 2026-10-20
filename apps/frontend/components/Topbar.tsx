@@ -52,7 +52,7 @@ export default function Topbar() {
               {s.topbarLeftText && (
                 <>
                   <span aria-hidden className="opacity-70">—</span>
-                  <span className="truncate opacity-90 group-hover:underline">{s.topbarLeftText}</span>
+                  <span className="truncate group-hover:underline">{s.topbarLeftText}</span>
                 </>
               )}
               <ArrowRight className="h-3.5 w-3.5 shrink-0 transition group-hover:translate-x-0.5" />
@@ -84,7 +84,7 @@ export default function Topbar() {
         <div className="hidden justify-end whitespace-nowrap md:flex">
           {phone && (
             <span>
-              <span className="opacity-90">Customer Support:</span>{" "}
+              <span>Customer Support:</span>{" "}
               <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className="font-semibold hover:underline">
                 {phone}
               </a>

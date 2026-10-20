@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { connection } from "next/server";
 import {
   Camera,
   Cpu,
@@ -14,10 +15,20 @@ import { apiClient } from "@/lib/api";
 import type { Banner, Brand, Category, ProductsResponse } from "@/lib/types";
 import ProductCard from "@/components/ProductCard";
 import BannerCarousel from "@/components/BannerCarousel";
+import { CACHE_TAGS } from "@/lib/cache-tags";
+
+// Public catalog data, cached on the Next server so the page doesn't wait on the database for
+// every visitor (only successful responses are cached). Tagged data is dropped as soon as the
+// admin panel saves it (app/api/revalidate); the revalidate time is only the fallback.
+// Products keep 60s because orders change stock without going through the admin panel.
+const cached = { next: { revalidate: 60 } };
+const bannersCache = { next: { revalidate: 3600, tags: [CACHE_TAGS.banners] } };
+const categoriesCache = { next: { revalidate: 3600, tags: [CACHE_TAGS.categories] } };
+const productsCache = { next: { revalidate: 60, tags: [CACHE_TAGS.products] } };
 
 async function getBanners(): Promise<Banner[]> {
   try {
-    return await apiClient.get<Banner[]>("/banners");
+    return await apiClient.get<Banner[]>("/banners", bannersCache);
   } catch {
     return [];
   }
@@ -25,7 +36,7 @@ async function getBanners(): Promise<Banner[]> {
 
 async function getBrands(): Promise<Brand[]> {
   try {
-    return await apiClient.get<Brand[]>("/brands");
+    return await apiClient.get<Brand[]>("/brands", cached);
   } catch {
     return [];
   }
@@ -33,7 +44,7 @@ async function getBrands(): Promise<Brand[]> {
 
 async function getCategories(): Promise<Category[]> {
   try {
-    return await apiClient.get<Category[]>("/categories");
+    return await apiClient.get<Category[]>("/categories", categoriesCache);
   } catch {
     return [];
   }
@@ -41,7 +52,7 @@ async function getCategories(): Promise<Category[]> {
 
 async function getNewArrivals(): Promise<ProductsResponse | null> {
   try {
-    return await apiClient.get<ProductsResponse>("/products?limit=8&sort=newest");
+    return await apiClient.get<ProductsResponse>("/products?limit=8&sort=newest", productsCache);
   } catch {
     return null;
   }
@@ -49,15 +60,12 @@ async function getNewArrivals(): Promise<ProductsResponse | null> {
 
 async function getTrending(): Promise<ProductsResponse | null> {
   try {
-    return await apiClient.get<ProductsResponse>("/products?limit=8&sort=price-desc");
+    return await apiClient.get<ProductsResponse>("/products?limit=8&sort=price-desc", productsCache);
   } catch {
     return null;
   }
 }
 
-// Render per request. The API is not reachable during `next build` in Docker, so a
-// statically prerendered homepage would cache empty sections and keep serving them.
-export const dynamic = "force-dynamic";
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   audio: Headphones,
@@ -99,6 +107,9 @@ function SectionHeader({
 }
 
 export default async function HomePage() {
+  // Render per request, never at build time: the API is not reachable during `next build`
+  // in Docker, so a prerendered homepage would cache empty sections and keep serving them.
+  await connection();
   const [banners, brands, categories, arrivals, trending] = await Promise.all([
     getBanners(),
     getBrands(),
@@ -164,7 +175,7 @@ export default async function HomePage() {
                       {b.name}
                     </span>
                   )}
-                  <span className="text-[11px] text-zinc-400">
+                  <span className="text-[11px] text-zinc-500">
                     {b.productCount} item{b.productCount === 1 ? "" : "s"}
                   </span>
                 </Link>

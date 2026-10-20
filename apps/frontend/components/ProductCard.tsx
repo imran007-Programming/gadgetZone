@@ -83,7 +83,7 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.brand && (
           <Link
             href={`/brands/${product.brand.slug}`}
-            className="mb-0.5 text-[9px] font-medium uppercase tracking-widest sm:mb-1 sm:text-[11px] text-zinc-400 transition hover:text-primary-600"
+            className="mb-0.5 text-[9px] font-medium uppercase tracking-widest sm:mb-1 sm:text-[11px] text-zinc-500 transition hover:text-primary-600"
           >
             {product.brand.name}
           </Link>
@@ -97,7 +97,7 @@ export default function ProductCard({ product }: { product: Product }) {
           {formatPrice(product.price)}
         </p>
         {hasDiscount && (
-          <p className="text-[11px] text-zinc-400 line-through sm:text-xs">
+          <p className="text-[11px] text-zinc-500 line-through sm:text-xs">
             {formatPrice(product.comparePrice!)}
           </p>
         )}

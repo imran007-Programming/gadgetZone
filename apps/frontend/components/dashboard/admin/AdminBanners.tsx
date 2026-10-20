@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, ImagePlus, Link2, Package, Pencil, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
+import { CACHE_TAGS, STOREFRONT_REFRESH_FAILED, revalidateCache } from "@/lib/cache-tags";
 import { useObjectUrl } from "@/lib/use-object-urls";
 import { buildCategoryTree } from "@/lib/categories";
 import type { AdminBanner, Category } from "@/lib/types";
@@ -77,24 +78,29 @@ export default function AdminBanners() {
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       apiClient.patch<AdminBanner>(`/admin/banners/${id}`, { isActive }),
-    onSuccess: (b) => {
+    onSuccess: async (b) => {
       invalidate();
       toast.success(b.isActive ? `"${b.title}" is visible` : `"${b.title}" hidden`);
+      if (!(await revalidateCache(CACHE_TAGS.banners))) toast.error(STOREFRONT_REFRESH_FAILED);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const reorderMutation = useMutation({
     mutationFn: (ids: string[]) => apiClient.patch<AdminBanner[]>("/admin/banners/reorder", { ids }),
-    onSuccess: (list) => queryClient.setQueryData(["admin", "banners"], list),
+    onSuccess: async (list) => {
+      queryClient.setQueryData(["admin", "banners"], list);
+      if (!(await revalidateCache(CACHE_TAGS.banners))) toast.error(STOREFRONT_REFRESH_FAILED);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.del(`/admin/banners/${id}`),
-    onSuccess: () => {
+    onSuccess: async () => {
       invalidate();
       toast.success("Banner deleted");
+      if (!(await revalidateCache(CACHE_TAGS.banners))) toast.error(STOREFRONT_REFRESH_FAILED);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -281,10 +287,11 @@ function BannerEditor({ banner, onClose }: { banner: AdminBanner | null; onClose
         ? apiClient.patch<AdminBanner>(`/admin/banners/${banner.id}`, payload)
         : apiClient.post<AdminBanner>("/admin/banners", payload);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "banners"] });
       toast.success(banner ? "Banner saved" : "Banner added to the carousel");
       onClose();
+      if (!(await revalidateCache(CACHE_TAGS.banners))) toast.error(STOREFRONT_REFRESH_FAILED);
     },
     onError: (e: Error) => setError(e.message),
   });

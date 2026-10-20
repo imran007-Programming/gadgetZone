@@ -6,6 +6,7 @@ import { ArrowRight, PanelTop, TicketPercent, Truck } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 import { useSiteSettings } from "@/lib/categories";
+import { CACHE_TAGS, STOREFRONT_REFRESH_FAILED, revalidateCache } from "@/lib/cache-tags";
 import type { SiteSettings } from "@/lib/types";
 import { Card, CardHead, ErrorBox, Field, Loading, Switch } from "./kit";
 
@@ -51,9 +52,10 @@ function DeliveryForm({ initial }: { initial: SiteSettings }) {
         bkashNumber: bkash.trim(),
         nagadNumber: nagad.trim(),
       }),
-    onSuccess: (saved) => {
+    onSuccess: async (saved) => {
       queryClient.setQueryData(["site-settings"], saved);
       toast.success("Delivery & payment saved");
+      if (!(await revalidateCache(CACHE_TAGS.settings))) toast.error(STOREFRONT_REFRESH_FAILED);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -117,9 +119,10 @@ function TopbarForm({ initial }: { initial: SiteSettings }) {
         announcementLink: values.announcementLink,
         supportPhone: values.supportPhone,
       }),
-    onSuccess: (saved) => {
+    onSuccess: async (saved) => {
       queryClient.setQueryData(["site-settings"], saved);
       toast.success("Top bar saved");
+      if (!(await revalidateCache(CACHE_TAGS.settings))) toast.error(STOREFRONT_REFRESH_FAILED);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -136,7 +139,7 @@ function TopbarForm({ initial }: { initial: SiteSettings }) {
         {/* Live preview */}
         <div
           style={{
-            background: "#ff5c38",
+            background: "#cf3818",
             color: "#fff",
             borderRadius: 10,
             padding: "9px 16px",
